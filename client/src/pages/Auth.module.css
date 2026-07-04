@@ -1,0 +1,141 @@
+/* Chess board pattern background */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: #0a0e14;
+  background-image:
+    linear-gradient(45deg, #111820 25%, transparent 25%),
+    linear-gradient(-45deg, #111820 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #111820 75%),
+    linear-gradient(-45deg, transparent 75%, #111820 75%);
+  background-size: 48px 48px;
+  background-position: 0 0, 0 24px, 24px -24px, -24px 0;
+  position: relative;
+}
+
+/* Radial vignette over the pattern */
+.page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, rgba(10,14,20,0.85) 100%);
+  pointer-events: none;
+}
+
+/* Subtle green glow at center */
+.page::after {
+  content: '';
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(63,185,80,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  background: rgba(22, 27, 34, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(48, 54, 61, 0.8);
+  border-radius: var(--radius-xl);
+  padding: 40px 36px;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(63,185,80,0.08);
+}
+
+.brand {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--green);
+  margin-bottom: 28px;
+  text-align: center;
+  letter-spacing: -0.5px;
+  filter: drop-shadow(0 0 12px rgba(63,185,80,0.4));
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+  text-align: center;
+  letter-spacing: -0.3px;
+}
+
+.sub {
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 0.875rem;
+  margin-bottom: 4px;
+}
+
+.error {
+  background: var(--red-glow);
+  border: 1px solid rgba(248, 81, 73, 0.35);
+  color: var(--red);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  margin-bottom: 14px;
+  margin-top: 12px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.input {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(1, 4, 9, 0.6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(63,185,80,0.12);
+}
+.input::placeholder { color: var(--text-muted); }
+
+.btn {
+  padding: 11px;
+  background: var(--green-dim);
+  color: white;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-top: 4px;
+  transition: background var(--transition), transform var(--transition-fast), box-shadow var(--transition);
+  border: 1px solid rgba(63,185,80,0.3);
+  box-shadow: 0 2px 8px rgba(35,134,54,0.3);
+}
+.btn:hover:not(:disabled) {
+  background: var(--green);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(35,134,54,0.4);
+}
+.btn:active:not(:disabled) { transform: translateY(0); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.footer {
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 0.82rem;
+  margin-top: 24px;
+}
+.footer a { color: var(--green); font-weight: 600; }

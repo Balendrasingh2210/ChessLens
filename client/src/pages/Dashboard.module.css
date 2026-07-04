@@ -1,0 +1,315 @@
+.page { padding: 32px 36px; max-width: 1140px; }
+.loading { display: flex; align-items: center; justify-content: center; height: 60vh; color: var(--text-sub); gap: 10px; }
+.loadingSpinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+/* Skeleton */
+.skeletonRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.skeletonCard { height: 110px; border-radius: var(--radius-lg); }
+.skeletonContent { height: 280px; border-radius: var(--radius-lg); }
+
+.header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
+.title { font-size: 1.6rem; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+.sub { color: var(--text-sub); font-size: 0.875rem; margin-top: 3px; }
+.sub strong { color: var(--green); }
+
+.connectBtn {
+  padding: 8px 18px;
+  background: var(--green-dim);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid rgba(63,185,80,0.3);
+  transition: background var(--transition), transform var(--transition-fast), box-shadow var(--transition);
+  box-shadow: 0 2px 8px rgba(35,134,54,0.25);
+}
+.connectBtn:hover {
+  background: var(--green);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(35,134,54,0.35);
+  text-decoration: none;
+  color: white;
+}
+
+/* Coaching */
+.coachCard {
+  display: flex;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(63,185,80,0.07), rgba(88,166,255,0.04));
+  border: 1px solid rgba(63,185,80,0.2);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.coachIcon { font-size: 1.5rem; flex-shrink: 0; }
+.coachText { color: var(--text); font-size: 0.9rem; line-height: 1.65; }
+
+/* Empty */
+.emptyState {
+  text-align: center;
+  padding: 80px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.emptyIcon { font-size: 4.5rem; opacity: 0.15; }
+.emptyState h2 { font-size: 1.2rem; color: var(--text); font-weight: 700; }
+.emptyState p { color: var(--text-sub); max-width: 400px; line-height: 1.65; }
+
+/* Stats row */
+.statsRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+
+.statCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  cursor: default;
+}
+.statCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-soft);
+}
+/* Colored top accent line per card */
+.statCard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--card-accent, var(--green));
+}
+/* Subtle glow in card top */
+.statCard::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(180deg, var(--card-glow, var(--green-glow)) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.statCard.green { --card-accent: var(--green); --card-glow: var(--green-glow); }
+.statCard.blue  { --card-accent: var(--blue);  --card-glow: var(--blue-glow); }
+.statCard.purple{ --card-accent: var(--purple); --card-glow: var(--purple-glow); }
+.statCard.orange{ --card-accent: var(--orange); --card-glow: var(--orange-glow); }
+
+.statIcon { font-size: 1.4rem; position: relative; z-index: 1; margin-top: 2px; }
+.statValue { font-size: 1.6rem; font-weight: 800; color: var(--text); position: relative; z-index: 1; letter-spacing: -0.5px; }
+.statLabel { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; position: relative; z-index: 1; }
+.statSub { font-size: 0.72rem; color: var(--text-sub); position: relative; z-index: 1; }
+
+/* Two-col layout */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+.chartCard, .gamesCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  transition: box-shadow var(--transition);
+}
+.chartCard:hover, .gamesCard:hover { box-shadow: var(--shadow-sm); }
+
+.cardTitle { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+.cardHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.cardHeader .cardTitle { margin-bottom: 0; }
+.viewAll { font-size: 0.8rem; color: var(--green); font-weight: 500; }
+.viewAll:hover { text-decoration: underline; }
+
+/* Weakness tags */
+.weaknessList { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.weaknessTag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  transition: border-color var(--transition), color var(--transition);
+}
+.weaknessTag:hover { border-color: var(--orange); color: var(--orange); }
+.weaknessRank { color: var(--orange); font-weight: 700; font-size: 0.7rem; }
+
+/* Recent games */
+.gamesList { display: flex; flex-direction: column; gap: 3px; }
+.gameRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  transition: background var(--transition), transform var(--transition-fast);
+  color: var(--text) !important;
+  text-decoration: none !important;
+  border: 1px solid transparent;
+}
+.gameRow:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-soft);
+  transform: translateX(2px);
+}
+
+.result {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.win  { background: rgba(63,185,80,0.18);  color: var(--green); box-shadow: 0 0 0 1px rgba(63,185,80,0.25); }
+.loss { background: rgba(248,81,73,0.18);  color: var(--red);   box-shadow: 0 0 0 1px rgba(248,81,73,0.25); }
+.draw { background: rgba(210,153,34,0.18); color: var(--orange); box-shadow: 0 0 0 1px rgba(210,153,34,0.25); }
+
+.gameInfo { flex: 1; min-width: 0; }
+.opponent { font-size: 0.875rem; font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gameMeta { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.accuracy { font-size: 0.82rem; color: var(--blue); font-weight: 700; flex-shrink: 0; }
+.noGames { color: var(--text-sub); font-size: 0.875rem; padding: 24px 0; text-align: center; }
+
+/* Puzzle card */
+.puzzleCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  transition: box-shadow var(--transition);
+}
+.puzzleCard:hover { box-shadow: var(--shadow-sm); }
+.puzzleSub { color: var(--text-sub); font-size: 0.85rem; margin-bottom: 14px; }
+.themeChips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.themeChip {
+  padding: 5px 14px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: var(--text-sub) !important;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+  text-decoration: none !important;
+}
+.themeChip:hover {
+  border-color: var(--green);
+  color: var(--green) !important;
+  background: var(--green-glow);
+}
+.practiceBtn {
+  display: inline-block;
+  padding: 9px 22px;
+  background: var(--green-dim);
+  color: white !important;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none !important;
+  transition: background var(--transition), transform var(--transition-fast), box-shadow var(--transition);
+  box-shadow: 0 2px 8px rgba(35,134,54,0.25);
+}
+.practiceBtn:hover {
+  background: var(--green);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(35,134,54,0.35);
+}
+
+/* YouTube video card */
+.videoCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  margin-top: 16px;
+  transition: box-shadow var(--transition);
+}
+.videoCard:hover { box-shadow: var(--shadow-sm); }
+.videoCardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.videoCardHeader .cardTitle { margin-bottom: 0; }
+.videoCardSub { font-size: 0.75rem; color: var(--text-muted); }
+
+.videoGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+.videoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  text-decoration: none !important;
+  color: var(--text) !important;
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.videoItem:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.videoThumbWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-hover);
+}
+.videoThumb { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform var(--transition-slow); }
+.videoItem:hover .videoThumb { transform: scale(1.04); }
+
+.playBadge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  background: rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: opacity var(--transition);
+  color: white;
+}
+.videoItem:hover .playBadge { opacity: 1; }
+
+.videoMeta { display: flex; flex-direction: column; gap: 3px; padding: 0 2px; }
+
+.videoReason {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--green);
+  background: var(--green-glow);
+  padding: 2px 7px;
+  border-radius: 999px;
+  width: fit-content;
+}
+.videoTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.videoChannel { font-size: 0.68rem; color: var(--text-muted); }
