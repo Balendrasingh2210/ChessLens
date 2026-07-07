@@ -4,6 +4,7 @@ const AnalyzedGame = require('../models/AnalyzedGame');
 const { analyzeGame } = require('../services/stockfishService');
 const { generateExplanations } = require('../services/claudeService');
 const { rebuildProfile } = require('../services/weaknessService');
+const { detectOpening } = require('../services/openingService');
 
 const QUEUE_NAME = 'game-analysis';
 
@@ -17,11 +18,25 @@ const initQueue = () => {
     return null;
   }
 
-  analysisQueue = new Queue(QUEUE_NAME, { connection: redis });
+  try {
+    analysisQueue = new Queue(QUEUE_NAME, { connection: redis });
+    // Swallow connection errors — we'll fall back to the local queue
+    analysisQueue.on('error', (err) => {
+      if (err.name === 'ConnectionClosedError' || err.code === 'ECONNREFUSED') {
+        analysisQueue = null;
+      } else {
+        console.error('Queue error:', err.message);
+      }
+    });
+  } catch (err) {
+    console.warn('⚠️  Failed to create BullMQ queue:', err.message);
+    return null;
+  }
 
-  analysisWorker = new Worker(
-    QUEUE_NAME,
-    async (job) => {
+  try {
+    analysisWorker = new Worker(
+      QUEUE_NAME,
+      async (job) => {
       const { gameId, userId } = job.data;
 
       const game = await AnalyzedGame.findById(gameId);
@@ -36,9 +51,9 @@ const initQueue = () => {
         const { mistakes, accuracy, moveHistory } = await analyzeGame(game.pgn, game.playerColor);
         await job.updateProgress(70);
 
-        // 2. Generate Claude explanations for the top 5 mistakes (blunders + mistakes only)
+        // 2. Generate Claude explanations for the top 5 player mistakes (blunders + mistakes only)
         const topMistakes = mistakes
-          .filter((m) => m.type === 'blunder' || m.type === 'mistake')
+          .filter((m) => (m.type === 'blunder' || m.type === 'mistake') && m.color === game.playerColor)
           .slice(0, 5);
 
         const withExplanations = await generateExplanations(topMistakes, game.playerColor);
@@ -52,12 +67,19 @@ const initQueue = () => {
           return explained ? { ...m, explanation: explained.explanation } : m;
         });
 
-        // 3. Save results
+        // 3. Detect opening via ECO position matching (more specific than PGN header)
+        const detectedOpening = detectOpening(game.pgn);
+
+        // 4. Save results
         await AnalyzedGame.findByIdAndUpdate(gameId, {
           mistakes: finalMistakes,
           moveHistory,
           accuracy,
           analysisStatus: 'done',
+          ...(detectedOpening && {
+            opening: detectedOpening.name,
+            eco:     detectedOpening.eco,
+          }),
         });
 
         // 4. Rebuild weakness profile
@@ -75,12 +97,22 @@ const initQueue = () => {
     }
   );
 
-  analysisWorker.on('completed', (job) => {
-    console.log(`✅ Analysis done: job ${job.id}`);
-  });
-  analysisWorker.on('failed', (job, err) => {
-    console.error(`❌ Analysis failed: job ${job?.id} — ${err.message}`);
-  });
+    analysisWorker.on('completed', (job) => {
+      console.log(`✅ Analysis done: job ${job.id}`);
+    });
+    analysisWorker.on('failed', (job, err) => {
+      console.error(`❌ Analysis failed: job ${job?.id} — ${err.message}`);
+    });
+    analysisWorker.on('error', (err) => {
+      if (err.name !== 'ConnectionClosedError' && err.code !== 'ECONNREFUSED') {
+        console.error('Worker error:', err.message);
+      }
+    });
+  } catch (err) {
+    console.warn('⚠️  Failed to create BullMQ worker:', err.message);
+    analysisQueue = null;
+    return null;
+  }
 
   console.log('🔄 Analysis worker started');
   return analysisQueue;
@@ -97,13 +129,26 @@ async function runAnalysisInBackground(gameDocId, userId) {
   await AnalyzedGame.findByIdAndUpdate(gameDocId, { analysisStatus: 'analyzing' });
   try {
     const { mistakes, accuracy, moveHistory } = await analyzeGame(game.pgn, game.playerColor);
-    const topMistakes = mistakes.filter((m) => m.type === 'blunder' || m.type === 'mistake').slice(0, 5);
+    const topMistakes = mistakes
+      .filter((m) => (m.type === 'blunder' || m.type === 'mistake') && m.color === game.playerColor)
+      .slice(0, 5);
     const withExplanations = await generateExplanations(topMistakes, game.playerColor);
     const finalMistakes = mistakes.map((m) => {
       const explained = withExplanations.find((e) => e.moveNumber === m.moveNumber);
       return explained ? { ...m, explanation: explained.explanation } : m;
     });
-    await AnalyzedGame.findByIdAndUpdate(gameDocId, { mistakes: finalMistakes, moveHistory, accuracy, analysisStatus: 'done' });
+    const { detectOpening } = require('../services/openingService');
+    const detectedOpening = detectOpening(game.pgn);
+    await AnalyzedGame.findByIdAndUpdate(gameDocId, {
+      mistakes: finalMistakes,
+      moveHistory,
+      accuracy,
+      analysisStatus: 'done',
+      ...(detectedOpening && {
+        opening: detectedOpening.name,
+        eco:     detectedOpening.eco,
+      }),
+    });
     await rebuildProfile(userId);
     console.log(`✅ Background analysis done: ${gameDocId}`);
   } catch (err) {
@@ -112,9 +157,27 @@ async function runAnalysisInBackground(gameDocId, userId) {
   }
 }
 
+// ── In-memory queue for no-Redis mode ────────────────────────────────────────
+// Controlled concurrency (max 2 concurrent analyses) so the Stockfish singleton
+// isn't overwhelmed and the HTTP server stays responsive.
+const localQueue = [];
+let localRunning = 0;
+const LOCAL_CONCURRENCY = 2;
+
+function drainLocalQueue() {
+  while (localRunning < LOCAL_CONCURRENCY && localQueue.length > 0) {
+    const { gameDocId, userId } = localQueue.shift();
+    localRunning++;
+    runAnalysisInBackground(gameDocId, userId).finally(() => {
+      localRunning--;
+      drainLocalQueue();
+    });
+  }
+}
+
 /**
  * Add games to the analysis queue.
- * Falls back to background analysis if Redis is unavailable — never blocks the HTTP request.
+ * Falls back to a controlled in-memory queue if Redis is unavailable.
  */
 const enqueueGame = async (gameDocId, userId) => {
   if (analysisQueue) {
@@ -123,8 +186,8 @@ const enqueueGame = async (gameDocId, userId) => {
       backoff: { type: 'exponential', delay: 5000 },
     });
   } else {
-    // Fire-and-forget: runs Stockfish in the background, import returns immediately
-    setImmediate(() => runAnalysisInBackground(gameDocId, userId));
+    localQueue.push({ gameDocId, userId });
+    drainLocalQueue();
   }
 };
 

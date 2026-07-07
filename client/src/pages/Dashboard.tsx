@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceLine,
+  ResponsiveContainer, Tooltip,
+} from 'recharts';
 import api from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { useWeaknessRecommendations } from '../hooks/useYouTubeRecs';
@@ -68,6 +72,18 @@ export default function Dashboard() {
       }))
     : [];
 
+  // Accuracy trend: oldest → newest, only games with accuracy data
+  const trendData = (data?.recentGames ?? [])
+    .filter(g => g.accuracy != null)
+    .slice()
+    .reverse()
+    .map((g, i) => ({
+      game: `#${i + 1}`,
+      accuracy: g.accuracy,
+      result: g.result,
+      opponent: g.opponent,
+    }));
+
   if (loading) return (
     <div className={s.page}>
       <div className={s.loading}>
@@ -121,6 +137,49 @@ export default function Dashboard() {
               sub={profile ? `${profile.results.wins}W · ${profile.results.losses}L · ${profile.results.draws}D` : ''}
             />
           </div>
+
+          {/* Accuracy Trend Chart */}
+          {trendData.length > 1 && (
+            <div className={s.trendCard}>
+              <div className={s.cardHeader}>
+                <h3 className={s.cardTitle}>Accuracy Trend</h3>
+                <span className={s.trendAvg}>avg {profile?.averageAccuracy ?? '—'}%</span>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={trendData} margin={{ top: 8, right: 16, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="game" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                    formatter={(val: number, _: string, props: any) => [
+                      `${val}%`,
+                      `vs ${props.payload.opponent} (${props.payload.result})`,
+                    ]}
+                    labelFormatter={(label) => `Game ${label}`}
+                  />
+                  <ReferenceLine y={profile?.averageAccuracy ?? 0} stroke="var(--green-dim)" strokeDasharray="4 4" />
+                  <Line
+                    type="monotone"
+                    dataKey="accuracy"
+                    stroke="var(--green)"
+                    strokeWidth={2}
+                    dot={(props: any) => {
+                      const colors = { win: 'var(--green)', loss: 'var(--red)', draw: 'var(--orange)' };
+                      return <circle key={props.key} cx={props.cx} cy={props.cy} r={4} fill={colors[props.payload.result as keyof typeof colors] ?? 'var(--green)'} stroke="var(--bg)" strokeWidth={1.5} />;
+                    }}
+                    activeDot={{ r: 6, fill: 'var(--green)' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className={s.trendLegend}>
+                <span className={s.legendDot} style={{ background: 'var(--green)' }} />Win
+                <span className={s.legendDot} style={{ background: 'var(--red)' }} />Loss
+                <span className={s.legendDot} style={{ background: 'var(--orange)' }} />Draw
+                <span className={s.legendLine} />Avg accuracy
+              </div>
+            </div>
+          )}
 
           <div className={s.cols}>
             {/* Weakness radar chart */}

@@ -24,6 +24,20 @@
 }
 .back:hover { color: var(--text); border-color: var(--text-sub); background: var(--bg-hover); }
 
+.gameNav { display: flex; align-items: center; gap: 6px; }
+.gameNavBtn {
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-sub);
+  font-size: 0.78rem;
+  transition: all var(--transition);
+}
+.gameNavBtn:hover:not(:disabled) { border-color: var(--green); color: var(--green); background: var(--green-glow); }
+.gameNavBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.gameNavPos { font-size: 0.75rem; color: var(--text-muted); min-width: 48px; text-align: center; }
+
 .gameTitle {
   display: flex;
   align-items: center;
@@ -45,6 +59,17 @@
 .draw { background: rgba(210,153,34,0.15); color: var(--orange); }
 
 .vs { font-weight: 600; font-size: 0.9rem; color: var(--text); white-space: nowrap; }
+.ecoBadge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--green);
+  background: var(--green-glow);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(63,185,80,0.3);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
 .opening {
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -219,6 +244,20 @@
 .compareBtn:hover { background: var(--bg-card); border-color: var(--border-soft); }
 .compareBtnActive { background: var(--bg-card) !important; font-weight: 600; }
 .annDeltaRow { display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; }
+
+/* Win% stats (before → after) */
+.winStatsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.78rem;
+  padding: 8px 0 4px;
+}
+.winStat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.winStatLabel { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.winStatVal { font-size: 1rem; font-weight: 800; color: var(--text); }
+.winStatArrow { flex: 1; text-align: center; font-size: 0.75rem; font-weight: 700; }
+
 .annDeltaLabel { color: var(--text-muted); }
 .annDeltaVal { font-weight: 700; font-size: 0.9rem; }
 .annExpl { font-size: 0.82rem; color: var(--text-sub); line-height: 1.6; margin: 0; }

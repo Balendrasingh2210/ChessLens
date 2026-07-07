@@ -18,10 +18,10 @@ const CATEGORY_THEMES = {
 
 // Hardcoded fallback pool — used only if local DB is empty
 const FALLBACK_PUZZLES = [
-  { puzzleId: 'fb-1', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4', moves: ['f3g5','f6d5','c4d5'], themes: ['fork','tactical'], rating: 1200, gameUrl: null },
-  { puzzleId: 'fb-2', fen: '6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1',                                   moves: ['e1e8'],             themes: ['backRankMate','mateIn1'], rating: 900,  gameUrl: null },
-  { puzzleId: 'fb-3', fen: 'r3k2r/ppp2ppp/2n5/3pp3/1b2P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 8',      moves: ['c3d5','b4e1','d1e1'], themes: ['fork','tactical'], rating: 1350, gameUrl: null },
-  { puzzleId: 'fb-4', fen: '2rr2k1/pp3ppp/8/3R4/8/1B6/PP3PPP/6K1 w - - 0 1',                         moves: ['d5d8','c8d8','b3f7'], themes: ['discoveredAttack'], rating: 1500, gameUrl: null },
+  { puzzleId: 'fb-1', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4', solution: ['f3g5','f6d5','c4d5'], themes: ['fork','tactical'], rating: 1200, gameUrl: null },
+  { puzzleId: 'fb-2', fen: '6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1',                                   solution: ['e1e8'],             themes: ['backRankMate','mateIn1'], rating: 900,  gameUrl: null },
+  { puzzleId: 'fb-3', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', solution: ['h5f7'],             themes: ['mateIn1','kingSafety'], rating: 800,  gameUrl: null },
+  { puzzleId: 'fb-4', fen: '2rr2k1/pp3ppp/8/3R4/8/1B6/PP3PPP/6K1 w - - 0 1',                         solution: ['d5d8','c8d8','b3f7'], themes: ['discoveredAttack'], rating: 1500, gameUrl: null },
 ];
 
 /**
@@ -87,10 +87,26 @@ router.get('/next', protect, async (req, res) => {
       // Serve from local DB — fast, unlimited
       const doc = await getLocalPuzzle(puzzleTheme, targetRating);
       if (doc) {
+        // Lichess CSV format: moves[0] is the opponent's last game move (the "intro"
+        // that created the tactic). Apply it so the board shows the position the
+        // player actually needs to solve, with the correct side to move.
+        let fen      = doc.fen;
+        let solution = doc.moves;
+        if (doc.moves.length > 1) {
+          try {
+            const { Chess } = require('chess.js');
+            const tmp   = new Chess();
+            tmp.load(doc.fen);
+            const intro = doc.moves[0];
+            tmp.move({ from: intro.slice(0, 2), to: intro.slice(2, 4), promotion: intro[4] || undefined });
+            fen      = tmp.fen();
+            solution = doc.moves.slice(1);
+          } catch { /* keep raw FEN/moves if intro move fails to parse */ }
+        }
         puzzle = {
           puzzleId: doc.puzzleId,
-          fen:      doc.fen,
-          solution: doc.moves,
+          fen,
+          solution,
           themes:   doc.themes,
           rating:   doc.rating,
           gameUrl:  doc.gameUrl,

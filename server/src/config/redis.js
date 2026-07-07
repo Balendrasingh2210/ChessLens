@@ -25,7 +25,7 @@ const connectRedis = async () => {
   }
 };
 
-const getRedis = () => redis;
+const getRedis = () => (redis?.status === 'ready' ? redis : null);
 
 // Safe cache helpers — gracefully handle Redis being down
 const cache = {

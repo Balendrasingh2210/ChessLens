@@ -106,19 +106,26 @@ function parseLichessPuzzle(data) {
   try { chess.loadPgn(data.game.pgn); } catch { /* ignore */ }
 
   const history   = chess.history({ verbose: true });
+  // initialPly is the 0-based index of the last game move before the puzzle starts.
+  // We replay history[0..initialPly] inclusive = initialPly+1 total moves.
   const targetPly = data.puzzle.initialPly;
   const replay    = new Chess();
-  for (let i = 0; i < Math.min(targetPly - 1, history.length); i++) {
+  for (let i = 0; i <= Math.min(targetPly, history.length - 1); i++) {
     replay.move(history[i]);
   }
-  // Sanity-check: ensure side-to-move matches solution[0]'s piece color
+
+  // Validate: solution[0] must be legal from the computed FEN
   const sol0 = data.puzzle.solution?.[0];
   if (sol0) {
-    const piece = replay.get(sol0.slice(0, 2));
-    if (piece && piece.color !== replay.turn()) {
-      replay.move(history[Math.min(targetPly - 1, history.length - 1)]);
+    try {
+      const check = new Chess(replay.fen());
+      check.move({ from: sol0.slice(0, 2), to: sol0.slice(2, 4), promotion: sol0[4] || 'q' });
+    } catch {
+      console.warn('[Puzzle] solution[0] invalid for puzzle', data.puzzle.id, '— skipping');
+      return null;
     }
   }
+
   return {
     puzzleId: data.puzzle.id,
     fen:      replay.fen(),
@@ -139,6 +146,7 @@ function refillPool(theme, difficulty) {
   if ((puzzlePool[theme]?.length ?? 0) >= POOL_SIZE) return;
   fetchFromLichess(theme, difficulty)
     .then(p => {
+      if (!p) return; // parseLichessPuzzle returned null (invalid puzzle)
       if (!puzzlePool[theme]) puzzlePool[theme] = [];
       puzzlePool[theme].push(p);
     })

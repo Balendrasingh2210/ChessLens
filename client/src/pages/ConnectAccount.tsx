@@ -24,8 +24,16 @@ export default function ConnectAccount() {
   const [pgnText, setPgnText]     = useState('');
   const [pgnUser, setPgnUser]     = useState('');
   const [pgnLoading, setPgnLoading] = useState(false);
+  const [importStep, setImportStep] = useState<null | 'fetching' | 'queuing'>(null);
 
   const accounts = user?.connectedAccounts ?? [];
+
+  const disconnectAccount = async (platform: Platform, username: string) => {
+    try {
+      await api.delete(`/games/account/${encodeURIComponent(platform)}/${encodeURIComponent(username)}`);
+      await refreshUser();
+    } catch { /* ignore */ }
+  };
 
   const connectAccount = async () => {
     setError(''); setLoading(true);
@@ -41,11 +49,12 @@ export default function ConnectAccount() {
 
   const importGames = async () => {
     if (!importing) return;
-    setError(''); setIL(true);
+    setError(''); setIL(true); setImportStep('fetching');
     try {
-      // Fetch directly from chess.com in the browser (bypasses server-side IP blocks)
-      const games = await fetchFromChessCom(importing.username, importing.count);
-      // Send the already-fetched games to our backend for storage + analysis
+      const games = importing.platform === 'lichess'
+        ? await fetchFromLichess(importing.username, importing.count)
+        : await fetchFromChessCom(importing.username, importing.count);
+      setImportStep('queuing');
       const { data } = await api.post('/games/import-raw', {
         games,
         platform: importing.platform,
@@ -57,7 +66,7 @@ export default function ConnectAccount() {
         : (err as { response?: { data?: { message?: string } } })?.response?.data?.message
         ?? 'Import failed';
       setError(msg);
-    } finally { setIL(false); }
+    } finally { setIL(false); setImportStep(null); }
   };
 
   /** Extract a PGN header tag value, e.g. parsePgnTag(pgn, 'Opening') → "Italian Game" */
@@ -131,6 +140,47 @@ export default function ConnectAccount() {
     return games;
   }
 
+  /** Fetch games directly from Lichess API (NDJSON stream) */
+  async function fetchFromLichess(username: string, maxGames: number): Promise<object[]> {
+    const response = await fetch(
+      `https://lichess.org/api/games/user/${encodeURIComponent(username)}?max=${maxGames}&rated=true&pgnInJson=true&clocks=true&opening=true`,
+      { headers: { Accept: 'application/x-ndjson', 'User-Agent': 'ChessLens/1.0' } }
+    );
+    if (response.status === 404) throw new Error(`Lichess user "${username}" not found`);
+    if (!response.ok) throw new Error(`Lichess API error: ${response.status}`);
+
+    const text = await response.text();
+    const lines = text.trim().split('\n').filter(Boolean);
+    if (!lines.length) throw new Error('No games found. Check your Lichess username.');
+
+    const games: object[] = [];
+    for (const line of lines) {
+      try {
+        const g = JSON.parse(line);
+        const playerColor =
+          g.players?.white?.user?.id?.toLowerCase() === username.toLowerCase() ? 'white' : 'black';
+        const playerSide = g.players?.[playerColor];
+        const oppSide    = g.players?.[playerColor === 'white' ? 'black' : 'white'];
+
+        games.push({
+          gameId:         g.id,
+          pgn:            g.pgn || '',
+          playerColor,
+          opponent:       oppSide?.user?.name ?? 'Anonymous',
+          playerRating:   playerSide?.rating ?? null,
+          opponentRating: oppSide?.rating ?? null,
+          result:         g.winner ? (g.winner === playerColor ? 'win' : 'loss') : 'draw',
+          timeControl:    g.clock ? `${g.clock.initial}+${g.clock.increment}` : null,
+          playedAt:       new Date(g.createdAt).toISOString(),
+          opening:        g.opening?.name ?? null,
+        });
+      } catch { continue; }
+    }
+
+    if (!games.length) throw new Error('No games found. Check your Lichess username.');
+    return games;
+  }
+
   const importPgn = async () => {
     if (!pgnText.trim() || !pgnUser.trim()) return;
     setError(''); setPgnLoading(true);
@@ -138,7 +188,7 @@ export default function ConnectAccount() {
       const { data } = await api.post('/games/import-pgn', {
         pgn: pgnText.trim(),
         username: pgnUser.trim(),
-        platform: 'chess.com',
+        platform: importing?.platform ?? 'lichess',
       });
       setImportResult({ imported: data.imported, skipped: data.skipped });
     } catch (err: unknown) {
@@ -188,8 +238,18 @@ export default function ConnectAccount() {
         </div>
         <p className={s.hint}>Already-analyzed games are skipped automatically.</p>
         {importLoading && (
-          <div className={s.fetchingMsg}>
-            ⏳ Fetching games from chess.com…
+          <div className={s.stepIndicator}>
+            {(['fetching', 'queuing'] as const).map((step, i) => {
+              const labels = { fetching: `Fetching from ${importing.platform}`, queuing: 'Queuing analysis' };
+              const done   = importStep === 'queuing' && step === 'fetching';
+              const active = importStep === step;
+              return (
+                <div key={step} className={`${s.step} ${done ? s.stepDone : active ? s.stepActive : s.stepWaiting}`}>
+                  <span className={s.stepNum}>{done ? '✓' : i + 1}</span>
+                  <span>{labels[step]}</span>
+                </div>
+              );
+            })}
           </div>
         )}
         {error && (
@@ -213,18 +273,18 @@ export default function ConnectAccount() {
       <div className={s.page}><div className={s.card}>
         <button className={s.backBtn} onClick={() => { setShowPgn(false); setError(''); }}>← Back</button>
         <h1 className={s.title}>Import from PGN</h1>
-        <p className={s.sub}>Download your games from chess.com, then paste them here.</p>
+        <p className={s.sub}>Download your games from Chess.com or Lichess, then paste them here.</p>
 
         <div className={s.pgnSteps}>
-          <span>1. Go to <strong>chess.com → My Games</strong></span>
-          <span>2. Click <strong>Export</strong> → copy all PGN</span>
-          <span>3. Paste below ↓</span>
+          <span>Chess.com: <strong>My Games → Export PGN</strong></span>
+          <span>Lichess: <strong>lichess.org/games/export</strong></span>
+          <span>Paste all PGN text below ↓</span>
         </div>
 
         <input
           className={s.input}
           type="text"
-          placeholder="Your chess.com username (for color detection)"
+          placeholder="Your username (for color detection)"
           value={pgnUser}
           onChange={e => setPgnUser(e.target.value)}
         />
@@ -266,6 +326,11 @@ export default function ConnectAccount() {
                 className={s.importBtn}
                 onClick={() => setImporting({ platform: a.platform as Platform, username: a.username, count: 20 })}
               >Import →</button>
+              <button
+                className={s.disconnectBtn}
+                title="Disconnect account"
+                onClick={() => disconnectAccount(a.platform as Platform, a.username)}
+              >✕</button>
             </div>
           ))}
         </div>

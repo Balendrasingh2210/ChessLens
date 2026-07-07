@@ -16,7 +16,10 @@ interface Mistake {
   playedFen: string;
   type: 'blunder' | 'mistake' | 'inaccuracy';
   category: string;
-  delta: number;
+  delta: number;           // cp delta (legacy)
+  winDropPct: number;      // win% points lost (new)
+  winBefore: number;       // win% before move (0–100)
+  winAfterPlayed: number;  // win% after played move (0–100)
   evalBefore: number;
   evalAfter: number;
   explanation: string | null;
@@ -24,11 +27,13 @@ interface Mistake {
 
 interface MoveHistoryEntry {
   moveNum: number;
-  color: string;  // 'white' | 'black'
+  color: string;
   san: string;
   evalAfterWhite: number;
-  delta: number;
+  winPct: number;          // player's win% after this move (0–100)
+  delta: number;           // win% points dropped
   classification: 'best' | 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
+  bestMove?: string;       // engine's best move SAN (shown when classification !== 'best')
 }
 
 interface GameData {
@@ -39,6 +44,7 @@ interface GameData {
   platform: string;
   playerColor: string;
   opening: string | null;
+  eco: string | null;
   mistakes: Mistake[];
   moveHistory: MoveHistoryEntry[];
   pgn: string;
@@ -57,7 +63,10 @@ interface MoveEntry {
   // From moveHistory (populated for player moves in analyzed games)
   classification?: string;
   evalAfterWhite?: number;
-  delta?: number;
+  winPct?: number;
+  delta?: number;       // win% points dropped
+  bestMove?: string;    // engine best SAN (when not 'best' classification)
+  fenBefore?: string;   // fen before this move (for best-move arrows on non-mistakes)
 }
 
 type CompareMode = 'played' | 'best';
@@ -116,6 +125,10 @@ function buildMoveList(
   const histMap = new Map<string, MoveHistoryEntry>();
   moveHistory?.forEach(h => histMap.set(`${h.moveNum}-${h.color}`, h));
 
+  const fenBefores: string[] = [];
+  const temp = new Chess();
+  history.forEach(mv => { fenBefores.push(temp.fen()); temp.move(mv); });
+
   return history.map((mv, i) => {
     replay.move(mv);
     const moveNum  = Math.floor(i / 2) + 1;
@@ -126,6 +139,7 @@ function buildMoveList(
     return {
       san: mv.san,
       fen: replay.fen(),
+      fenBefore: fenBefores[i],
       from: mv.from as Square,
       to:   mv.to as Square,
       moveNum,
@@ -133,7 +147,9 @@ function buildMoveList(
       mistake,
       classification: hist?.classification ?? (mistake ? mistake.type : undefined),
       evalAfterWhite: hist?.evalAfterWhite,
-      delta:          hist?.delta,
+      winPct:   hist?.winPct,
+      delta:    hist?.delta,
+      bestMove: hist?.bestMove,
     };
   });
 }
@@ -150,6 +166,7 @@ export default function GameReview() {
   const [loading, setLoading]         = useState(true);
   const [compareMode, setCompareMode] = useState<CompareMode>('played');
   const [boardWidth, setBoardWidth]   = useState(480);
+  const [gameIds, setGameIds]         = useState<string[]>([]);
   const activeRef = useRef<HTMLButtonElement | null>(null);
   const roRef     = useRef<ResizeObserver | null>(null);
   const boardWrapRef = useCallback((node: HTMLDivElement | null) => {
@@ -175,6 +192,16 @@ export default function GameReview() {
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [cursor]);
+
+  useEffect(() => {
+    api.get('/games?limit=500')
+      .then(res => setGameIds(
+        (res.data.games as { _id: string; analysisStatus: string }[])
+          .filter(g => g.analysisStatus === 'done')
+          .map(g => g._id)
+      ))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.get(`/games/${id}`)
@@ -224,14 +251,19 @@ export default function GameReview() {
   let squareStyles: Record<string, React.CSSProperties> = {};
   let arrows: Arrow[] = [];
 
-  if (compareMode === 'best' && mistake) {
-    // Show position BEFORE the mistake with best + played arrows
-    displayFen = mistake.playedFen;
-    const best = bestMoveSquares(mistake.playedFen, mistake.best);
+  // Determine best-move context for the current move (mistakes OR suboptimal moves)
+  const hasBestMove = !!(mistake || (current?.bestMove && current?.fenBefore));
+  const bestFen     = mistake ? mistake.playedFen : current?.fenBefore;
+  const bestSan     = mistake ? mistake.best : current?.bestMove;
+
+  if (compareMode === 'best' && hasBestMove && bestFen && bestSan) {
+    displayFen = bestFen;
+    const best = bestMoveSquares(bestFen, bestSan);
     if (best) {
+      const badColor = mistake ? 'rgba(248,81,73,0.7)' : 'rgba(210,153,34,0.7)';
       arrows = [
         [best.from, best.to, '#3fb950'],
-        [current!.from, current!.to, 'rgba(248,81,73,0.7)'],
+        [current!.from, current!.to, badColor],
       ];
       squareStyles = {
         [best.from]: { background: 'rgba(63,185,80,0.35)' },
@@ -239,7 +271,6 @@ export default function GameReview() {
       };
     }
   } else if (current) {
-    // Normal: highlight last move
     squareStyles = {
       [current.from]: { background: 'rgba(255,255,100,0.35)' },
       [current.to]:   { background: mistake
@@ -248,10 +279,10 @@ export default function GameReview() {
     };
   }
 
-  // ── Counts ────────────────────────────────────────────────────────────────
-  const blunderCount    = game.mistakes.filter(m => m.type === 'blunder').length;
-  const mistakeCount    = game.mistakes.filter(m => m.type === 'mistake').length;
-  const inaccuracyCount = game.mistakes.filter(m => m.type === 'inaccuracy').length;
+  // ── Counts (player's moves only) ─────────────────────────────────────────
+  const blunderCount    = game.mistakes.filter(m => m.type === 'blunder'    && m.color === game.playerColor).length;
+  const mistakeCount    = game.mistakes.filter(m => m.type === 'mistake'    && m.color === game.playerColor).length;
+  const inaccuracyCount = game.mistakes.filter(m => m.type === 'inaccuracy' && m.color === game.playerColor).length;
 
   // ── Move pairs ────────────────────────────────────────────────────────────
   type Pair = { num: number; white?: MoveEntry; wIdx: number; black?: MoveEntry; bIdx: number };
@@ -276,15 +307,16 @@ export default function GameReview() {
 
     if (mistake) {
       const canToggle = !!(mistake.playedFen && mistake.best);
+      const winLost   = mistake.winDropPct != null
+        ? `−${mistake.winDropPct.toFixed(1)}%`
+        : `−${mistake.delta}cp`;
       return (
         <div className={s.annotation} style={{ borderLeftColor: QUALITY[mistake.type].color, background: QUALITY[mistake.type].bg }}>
-          {/* Header */}
           <div className={s.annotationHead} style={{ color: QUALITY[mistake.type].color }}>
             <span>{QUALITY[mistake.type].icon} {QUALITY[mistake.type].label}</span>
             <span className={s.annCategory}>{mistake.category}</span>
           </div>
 
-          {/* Compare toggle */}
           {canToggle && (
             <div className={s.compareRow}>
               <button
@@ -292,7 +324,7 @@ export default function GameReview() {
                 style={compareMode === 'played' ? { borderColor: QUALITY[mistake.type].color, color: QUALITY[mistake.type].color } : {}}
                 onClick={() => setCompareMode('played')}
               >
-                Your move: <strong>{mistake.played}</strong>
+                {mistake.color === game.playerColor ? 'Your move: ' : 'Played: '}<strong>{mistake.played}</strong>
               </button>
               <button
                 className={`${s.compareBtn} ${compareMode === 'best' ? s.compareBtnActive : ''}`}
@@ -304,18 +336,29 @@ export default function GameReview() {
             </div>
           )}
 
-          {/* Eval delta */}
-          <div className={s.annDeltaRow}>
-            <span className={s.annDeltaLabel}>Centipawn loss</span>
-            <span className={s.annDeltaVal} style={{ color: QUALITY[mistake.type].color }}>
-              −{mistake.delta}cp
-            </span>
+          {/* Win% stats row */}
+          <div className={s.winStatsRow}>
+            {mistake.winBefore != null && (
+              <div className={s.winStat}>
+                <span className={s.winStatLabel}>Before</span>
+                <span className={s.winStatVal}>{mistake.winBefore}%</span>
+              </div>
+            )}
+            <div className={s.winStatArrow} style={{ color: QUALITY[mistake.type].color }}>
+              {winLost} win chance
+            </div>
+            {mistake.winAfterPlayed != null && (
+              <div className={s.winStat}>
+                <span className={s.winStatLabel}>After</span>
+                <span className={s.winStatVal}>{mistake.winAfterPlayed}%</span>
+              </div>
+            )}
           </div>
 
-          {/* Explanation */}
-          {mistake.explanation && (
-            <p className={s.annExpl}>🤖 {mistake.explanation}</p>
-          )}
+          {mistake.explanation
+            ? <p className={s.annExpl}>🤖 {mistake.explanation}</p>
+            : <p className={s.annHint}>💡 Add ANTHROPIC_API_KEY to server/.env for AI explanations</p>
+          }
 
           {compareMode === 'best' && (
             <p className={s.annHint}>Showing best move on board ↑</p>
@@ -326,21 +369,47 @@ export default function GameReview() {
 
     // Non-mistake move
     if (q) {
+      const canToggle = !!(current.bestMove && current.fenBefore);
+      const isPlayerMove = current.color === (game.playerColor === 'white' ? 'w' : 'b');
       return (
         <div className={s.annotation} style={{ borderLeftColor: q.color, background: q.bg }}>
           <div className={s.annotationHead} style={{ color: q.color }}>
             <span>{q.icon ? `${q.icon} ` : ''}{q.label}</span>
-            {current.delta != null && current.delta < 5 && (
-              <span className={s.annCategory}>engine agrees</span>
+            {current.winPct != null && (
+              <span className={s.annCategory}>{current.winPct}% win chance</span>
             )}
           </div>
+
+          {canToggle && (
+            <div className={s.compareRow}>
+              <button
+                className={`${s.compareBtn} ${compareMode === 'played' ? s.compareBtnActive : ''}`}
+                style={compareMode === 'played' ? { borderColor: q.color, color: q.color } : {}}
+                onClick={() => setCompareMode('played')}
+              >
+                {isPlayerMove ? 'Your move: ' : 'Played: '}<strong>{current.san}</strong>
+              </button>
+              <button
+                className={`${s.compareBtn} ${compareMode === 'best' ? s.compareBtnActive : ''}`}
+                style={compareMode === 'best' ? { borderColor: '#3fb950', color: '#3fb950' } : {}}
+                onClick={() => setCompareMode('best')}
+              >
+                Best: <strong>{current.bestMove}</strong> ✓
+              </button>
+            </div>
+          )}
+
           {current.evalAfterWhite != null && (
             <div className={s.annDeltaRow}>
               <span className={s.annDeltaLabel}>Position eval</span>
-              <span className={s.annDeltaVal} style={{ color: current.evalAfterWhite >= 0 ? '#eee' : '#aaa' }}>
+              <span className={s.annDeltaVal}>
                 {fmtEval(current.evalAfterWhite)}
               </span>
             </div>
+          )}
+
+          {compareMode === 'best' && canToggle && (
+            <p className={s.annHint}>Showing best move on board ↑</p>
           )}
         </div>
       );
@@ -349,11 +418,22 @@ export default function GameReview() {
     return <div className={s.annotationEmpty}>✓ Move played</div>;
   };
 
+  const currentIdx = gameIds.indexOf(id ?? '');
+  const prevId = currentIdx > 0 ? gameIds[currentIdx - 1] : null;
+  const nextId = currentIdx >= 0 && currentIdx < gameIds.length - 1 ? gameIds[currentIdx + 1] : null;
+
   return (
     <div className={s.page}>
       {/* Top bar */}
       <div className={s.topBar}>
         <button className={s.back} onClick={() => navigate('/games')}>← Back</button>
+        {gameIds.length > 1 && (
+          <div className={s.gameNav}>
+            <button className={s.gameNavBtn} onClick={() => prevId && navigate(`/games/${prevId}`)} disabled={!prevId}>◀ Prev</button>
+            <span className={s.gameNavPos}>{currentIdx + 1} / {gameIds.length}</span>
+            <button className={s.gameNavBtn} onClick={() => nextId && navigate(`/games/${nextId}`)} disabled={!nextId}>Next ▶</button>
+          </div>
+        )}
         <div className={s.gameTitle}>
           <span className={`${s.resultBadge} ${s[game.result]}`}>
             {game.result === 'win' ? 'Won' : game.result === 'loss' ? 'Lost' : 'Draw'}
@@ -361,6 +441,7 @@ export default function GameReview() {
           <span className={s.vs}>
             {game.playerColor === 'white' ? '♔' : '♚'} vs <strong>{game.opponent}</strong>
           </span>
+          {game.eco     && <span className={s.ecoBadge}>{game.eco}</span>}
           {game.opening && <span className={s.opening}>{game.opening}</span>}
         </div>
         <div className={s.accuracy}>

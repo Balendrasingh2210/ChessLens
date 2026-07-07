@@ -91,6 +91,54 @@
 }
 .tryAgainBtn:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-glow); }
 
+.hintBtn {
+  padding: 10px 16px;
+  background: rgba(255,165,0,0.08);
+  border: 1px solid rgba(255,165,0,0.35);
+  border-radius: var(--radius);
+  color: rgba(255,165,0,0.9);
+  font-size: 0.85rem;
+  font-weight: 600;
+  width: 100%;
+  transition: all var(--transition);
+}
+.hintBtn:hover {
+  background: rgba(255,165,0,0.15);
+  border-color: rgba(255,165,0,0.6);
+  color: orange;
+}
+
+.wrongActions {
+  display: flex;
+  gap: 8px;
+}
+
+.retryBtn {
+  flex: 1;
+  padding: 11px 16px;
+  background: rgba(248,81,73,0.08);
+  border: 1px solid rgba(248,81,73,0.4);
+  border-radius: var(--radius);
+  color: var(--red);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all var(--transition);
+}
+.retryBtn:hover { background: rgba(248,81,73,0.15); border-color: rgba(248,81,73,0.7); }
+
+.showAnswerBtn {
+  flex: 1;
+  padding: 11px 16px;
+  background: rgba(63,185,80,0.08);
+  border: 1px solid rgba(63,185,80,0.35);
+  border-radius: var(--radius);
+  color: var(--green);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all var(--transition);
+}
+.showAnswerBtn:hover { background: rgba(63,185,80,0.15); border-color: rgba(63,185,80,0.6); }
+
 .themes { display: flex; flex-wrap: wrap; gap: 6px; }
 .themeTag {
   padding: 4px 11px;
@@ -125,3 +173,44 @@
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(35,134,54,0.4);
 }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; }
+.tabBtn { padding: 6px 18px; border-radius: calc(var(--radius) - 2px); font-size: 0.82rem; font-weight: 600; color: var(--text-muted); background: transparent; border: none; cursor: pointer; transition: all 0.15s; }
+.tabBtn:hover { color: var(--text); }
+.tabActive { background: var(--bg-card) !important; color: var(--text) !important; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+
+.headerRight { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* History tab */
+.histEmpty { text-align: center; padding: 80px; color: var(--text-sub); }
+.histPage { display: flex; flex-direction: column; gap: 28px; max-width: 720px; }
+.histSummary { display: flex; gap: 10px; flex-wrap: wrap; }
+.histStat {
+  flex: 1;
+  min-width: 110px;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+}
+.histStat span { display: block; font-size: 1.6rem; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+.histStat { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.histSectionTitle { font-size: 0.85rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
+.themeBreakdown { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+.themeRows { display: flex; flex-direction: column; gap: 8px; }
+.themeRow { display: grid; grid-template-columns: 140px 1fr 42px 52px; align-items: center; gap: 10px; font-size: 0.82rem; }
+.themeRowName { color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.themeBar { height: 6px; background: var(--bg-hover); border-radius: 999px; overflow: hidden; }
+.themeBarFill { height: 100%; background: var(--green); border-radius: 999px; transition: width 0.4s ease; }
+.themeRowPct { font-weight: 700; color: var(--green); text-align: right; }
+.themeRowCount { color: var(--text-muted); font-size: 0.75rem; text-align: right; }
+.histList { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+.histItem { display: grid; grid-template-columns: 28px 1fr 50px 90px; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+.histItem:last-child { border-bottom: none; }
+.histCorrect .histResult { color: var(--green); font-weight: 800; }
+.histWrong   .histResult { color: var(--red);   font-weight: 800; }
+.histTheme { color: var(--text-sub); }
+.histTime { color: var(--text-muted); font-size: 0.75rem; text-align: right; }
+.histDate { color: var(--text-muted); font-size: 0.75rem; text-align: right; }

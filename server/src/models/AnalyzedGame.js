@@ -1,17 +1,19 @@
 const mongoose = require('mongoose');
 
-// Per-move eval entry for all player moves (populated after analysis)
+// Per-move eval entry for ALL moves (both sides, populated after analysis)
 const moveHistoryItemSchema = new mongoose.Schema({
   moveNum:        { type: Number, required: true },
   color:          { type: String, enum: ['white', 'black'], required: true },
   san:            { type: String, required: true },
   evalAfterWhite: { type: Number, required: true }, // centipawns from white's perspective
-  delta:          { type: Number, default: 0 },     // centipawn loss (0 = best/no loss)
+  winPct:         { type: Number, default: null },  // mover's win% after this move (0–100)
+  delta:          { type: Number, default: 0 },     // win% drop (0 = best/no loss)
   classification: {
     type: String,
     enum: ['best', 'excellent', 'good', 'inaccuracy', 'mistake', 'blunder'],
     default: 'best',
   },
+  bestMove: { type: String, default: null }, // engine's best SAN (only set when played ≠ best)
 }, { _id: false });
 
 // One entry per mistake/inaccuracy found in a game
@@ -21,10 +23,13 @@ const mistakeSchema = new mongoose.Schema({
   played:      { type: String, required: true },   // e.g. "Rxe5"
   best:        { type: String, required: true },   // e.g. "Nf6"
   playedFen:   { type: String, required: true },   // position before the move
-  evalBefore:  { type: Number, required: true },   // centipawns
-  evalAfter:   { type: Number, required: true },   // centipawns after played move
-  evalBest:    { type: Number, required: true },   // centipawns after best move
-  delta:       { type: Number, required: true },   // how much was lost
+  evalBefore:     { type: Number, required: true },   // centipawns before move (mover's perspective)
+  evalAfter:      { type: Number, required: true },   // centipawns after played move (mover's perspective)
+  evalBest:       { type: Number, required: true },   // centipawns after best move (mover's perspective)
+  winBefore:      { type: Number, default: null },    // mover's win% before move (0–100)
+  winAfterPlayed: { type: Number, default: null },    // mover's win% after played move (0–100)
+  winDropPct:     { type: Number, default: null },    // win% points lost (positive)
+  delta:          { type: Number, required: true },   // cp difference (evalBest - evalAfter)
   type: {
     type: String,
     enum: ['blunder', 'mistake', 'inaccuracy'],
@@ -62,7 +67,8 @@ const analyzedGameSchema = new mongoose.Schema({
   result:     { type: String, enum: ['win', 'loss', 'draw'], required: true },
   timeControl: { type: String, default: null },
   playedAt:   { type: Date, default: null },
-  opening:    { type: String, default: null },
+  opening:    { type: String, default: null }, // full name e.g. "Sicilian Defense: Najdorf Variation"
+  eco:        { type: String, default: null }, // ECO code e.g. "B90"
 
   // Per-move evaluation history (all player moves)
   moveHistory: [moveHistoryItemSchema],

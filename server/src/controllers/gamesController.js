@@ -4,7 +4,7 @@ const AnalyzedGame = require('../models/AnalyzedGame');
 const { fetchGames: fetchChessCom, verifyUser: verifyChessCom } = require('../services/chessComService');
 const { fetchGames: fetchLichess, verifyUser: verifyLichess } = require('../services/lichessService');
 const { enqueueGame } = require('../workers/analysisWorker');
-const { getGameRecommendations } = require('../services/youtubeService');
+const { detectOpening } = require('../services/openingService');
 
 /**
  * Connect a chess.com or lichess account
@@ -72,6 +72,8 @@ exports.importGames = async (req, res) => {
       if (exists) { skipped++; continue; }
 
       // Save to DB with pending status
+      // Detect opening from ECO database immediately (analysis will refine later)
+      const ecoResult = detectOpening(g.pgn);
       const doc = await AnalyzedGame.create({
         userId: req.user._id,
         platform,
@@ -84,7 +86,8 @@ exports.importGames = async (req, res) => {
         result: g.result,
         timeControl: g.timeControl,
         playedAt: g.playedAt,
-        opening: g.opening,
+        opening: ecoResult?.name ?? g.opening,
+        eco:     ecoResult?.eco  ?? null,
         analysisStatus: 'pending',
       });
 
@@ -169,6 +172,7 @@ exports.importRaw = async (req, res) => {
       });
       if (exists) { skipped++; continue; }
 
+      const ecoResult = detectOpening(g.pgn);
       const doc = await AnalyzedGame.create({
         userId: req.user._id,
         platform,
@@ -181,7 +185,8 @@ exports.importRaw = async (req, res) => {
         result:         g.result,
         timeControl:    g.timeControl,
         playedAt:       new Date(g.playedAt),
-        opening:        g.opening ?? null,
+        opening:        ecoResult?.name ?? g.opening ?? null,
+        eco:            ecoResult?.eco  ?? null,
         analysisStatus: 'pending',
       });
 
@@ -253,6 +258,7 @@ exports.importPgn = async (req, res) => {
         ? new Date(headers.Date.replace(/\./g, '-'))
         : new Date();
 
+      const ecoResult = detectOpening(block);
       const doc = await AnalyzedGame.create({
         userId: req.user._id,
         platform,
@@ -260,12 +266,13 @@ exports.importPgn = async (req, res) => {
         pgn: block,
         playerColor,
         opponent,
-        playerRating: parseInt(headers[playerColor === 'white' ? 'WhiteElo' : 'BlackElo']) || null,
+        playerRating:   parseInt(headers[playerColor === 'white' ? 'WhiteElo' : 'BlackElo']) || null,
         opponentRating: parseInt(headers[playerColor === 'white' ? 'BlackElo' : 'WhiteElo']) || null,
         result,
         timeControl: headers.TimeControl || null,
         playedAt,
-        opening: headers.Opening || headers.ECO || null,
+        opening: ecoResult?.name ?? headers.Opening ?? headers.ECO ?? null,
+        eco:     ecoResult?.eco  ?? null,
         analysisStatus: 'pending',
       });
 
@@ -285,24 +292,21 @@ exports.importPgn = async (req, res) => {
 };
 
 /**
- * Get YouTube video recommendations tailored to a specific game's analysis
+ * Disconnect a linked platform account
  */
-exports.getRecommendations = async (req, res) => {
+exports.disconnectAccount = async (req, res) => {
   try {
-    const game = await AnalyzedGame.findOne({ _id: req.params.id, userId: req.user._id });
-    if (!game) return res.status(404).json({ message: 'Game not found' });
-
-    if (!process.env.YOUTUBE_API_KEY) {
-      return res.json({ videos: [], message: 'YouTube API key not configured' });
-    }
-
-    const videos = await getGameRecommendations(game);
-    res.json({ videos });
+    const { platform, username } = req.params;
+    await User.findByIdAndUpdate(req.user._id, {
+      $pull: { connectedAccounts: { platform, username } },
+    });
+    res.json({ message: `Disconnected ${platform} account ${username}` });
   } catch (err) {
-    console.error('[getRecommendations] error:', err.message);
     res.status(500).json({ message: err.message });
   }
 };
+
+// YouTube recommendations moved to browser — see client/src/hooks/useYouTubeRecs.ts
 
 /**
  * Get a single analyzed game with full details
