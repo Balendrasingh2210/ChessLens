@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const connectDB = require('./config/db');
 const { connectRedis } = require('./config/redis');
 const authRoutes = require('./routes/auth');
@@ -24,6 +25,12 @@ app.use('/api/puzzles', puzzlesRoutes);
 app.use('/api/profile', profileRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'ChessLens' }));
+
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '../../client/dist');
+  app.use(express.static(clientDist));
+  app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
+}
 
 const PORT = process.env.PORT || 5001;
 
