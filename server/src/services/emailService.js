@@ -1,7 +1,12 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM   = 'ChessLens <onboarding@resend.dev>';
+const getTransport = () => {
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) return null;
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS },
+  });
+};
 
 const wrap = (body) => `
   <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:36px 28px;background:#0d1117;color:#e6edf3;border-radius:12px;border:1px solid #21262d">
@@ -13,41 +18,46 @@ const wrap = (body) => `
     </p>
   </div>`;
 
-const btn = (url, label) =>
+const btn  = (url, label) =>
   `<a href="${url}" style="display:inline-block;padding:12px 26px;background:#238636;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:0.9rem">${label}</a>`;
 
-const muted = (text) => `<p style="color:#8b949e;font-size:0.8rem;margin-top:20px;line-height:1.6">${text}</p>`;
+const muted = (text) =>
+  `<p style="color:#8b949e;font-size:0.8rem;margin-top:20px;line-height:1.6">${text}</p>`;
 
 exports.sendVerificationEmail = async (to, token) => {
-  const url = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
-  if (!resend) {
+  const url       = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
+  const transport = getTransport();
+  if (!transport) {
     console.log(`[Dev] Verification link for ${to}: ${url}`);
     return;
   }
-  await resend.emails.send({
-    from: FROM, to,
+  await transport.sendMail({
+    from:    `"ChessLens" <${process.env.GMAIL_USER}>`,
+    to,
     subject: 'Verify your ChessLens account',
     html: wrap(`
       <p style="color:#8b949e;margin-bottom:28px">Welcome aboard! Click the button below to verify your email and activate your account.</p>
       ${btn(url, 'Verify Email')}
       ${muted(`Or copy this link: <a href="${url}" style="color:#58a6ff">${url}</a><br>This link expires in 24 hours.`)}
-    `)
+    `),
   });
 };
 
 exports.sendPasswordResetEmail = async (to, token) => {
-  const url = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
-  if (!resend) {
+  const url       = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+  const transport = getTransport();
+  if (!transport) {
     console.log(`[Dev] Password reset link for ${to}: ${url}`);
     return;
   }
-  await resend.emails.send({
-    from: FROM, to,
+  await transport.sendMail({
+    from:    `"ChessLens" <${process.env.GMAIL_USER}>`,
+    to,
     subject: 'Reset your ChessLens password',
     html: wrap(`
       <p style="color:#8b949e;margin-bottom:28px">Someone requested a password reset for your account. Click below to set a new password.</p>
       ${btn(url, 'Reset Password')}
       ${muted(`Or copy this link: <a href="${url}" style="color:#58a6ff">${url}</a><br>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.`)}
-    `)
+    `),
   });
 };
