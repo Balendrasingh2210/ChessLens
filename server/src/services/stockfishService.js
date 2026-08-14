@@ -6,8 +6,8 @@ const STOCKFISH_JS = path.resolve(
   require.resolve('stockfish/src/stockfish-nnue-16-single.js')
 );
 
-// ─── Depth ─────────────────────────────────────────────────────────────────────
-const DEPTH = 10;
+// ─── Analysis time budget per position (ms) ────────────────────────────────────
+const MOVETIME = 300;
 
 // ─── Win% model ────────────────────────────────────────────────────────────────
 const WIN_DROP = { blunder: 20, mistake: 10, inaccuracy: 5, good: 2, excellent: 0.5 };
@@ -62,7 +62,7 @@ function processNext() {
  * cp   = centipawns from the side-to-move's perspective (positive = that side winning)
  * bestUci = engine's best move in UCI notation (e.g. "e2e4")
  */
-function evalWithBest(fen, depth) {
+function evalWithBest(fen) {
   return new Promise((resolve) => {
     startStockfish();
     let resolved = false;
@@ -110,11 +110,11 @@ function evalWithBest(fen, depth) {
         bestUci = '0000';
         timeout = setTimeout(() => {
           if (!resolved) { resolved = true; finish(); }
-        }, 8000);
+        }, 3000);
 
         sfProcess.stdin.write('ucinewgame\n');
         sfProcess.stdin.write(`position fen ${fen}\n`);
-        sfProcess.stdin.write(`go depth ${depth}\n`);
+        sfProcess.stdin.write(`go movetime ${MOVETIME}\n`);
       },
     };
 
@@ -179,7 +179,7 @@ exports.analyzeGame = async (pgn, playerColor) => {
   // so we cache and reuse instead of calling Stockfish twice per move.
   let cachedResult;
   try {
-    cachedResult = await evalWithBest(replay.fen(), DEPTH);
+    cachedResult = await evalWithBest(replay.fen());
   } catch {
     return { mistakes: [], accuracy: 0, moveHistory: [] };
   }
@@ -204,7 +204,7 @@ exports.analyzeGame = async (pgn, playerColor) => {
     // fenAfter is opponent's turn → cp is from opponent's perspective
     let rawAfter;
     try {
-      cachedResult = await evalWithBest(fenAfter, DEPTH);
+      cachedResult = await evalWithBest(fenAfter);
       rawAfter = cachedResult.cp;
     } catch {
       cachedResult = { cp: 0, bestUci: '0000' };
