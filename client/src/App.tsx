@@ -12,6 +12,8 @@ import Puzzles from './pages/Puzzles';
 import Analysis from './pages/Analysis';
 import Settings from './pages/Settings';
 import ForgotPassword from './pages/ForgotPassword';
+import VerifyEmail from './pages/VerifyEmail';
+import ResetPassword from './pages/ResetPassword';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuthStore();
@@ -33,6 +35,8 @@ export default function App() {
         <Route path="/login"           element={<Login />} />
         <Route path="/register"        element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-email"    element={<VerifyEmail />} />
+        <Route path="/reset-password"  element={<ResetPassword />} />
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route path="/"               element={<Dashboard />} />
           <Route path="/connect"        element={<ConnectAccount />} />

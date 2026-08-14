@@ -1,24 +1,55 @@
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const User   = require('../models/User');
+const email  = require('../services/emailService');
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 
 exports.register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password)
+    const { username, email: addr, password } = req.body;
+    if (!username || !addr || !password)
       return res.status(400).json({ message: 'All fields required' });
 
-    const emailExists = await User.findOne({ email });
-    if (emailExists) return res.status(409).json({ message: 'Email already in use' });
+    if (await User.findOne({ email: addr }))
+      return res.status(409).json({ message: 'Email already in use' });
+    if (await User.findOne({ username }))
+      return res.status(409).json({ message: 'Username already taken' });
 
-    const usernameExists = await User.findOne({ username });
-    if (usernameExists) return res.status(409).json({ message: 'Username already taken' });
+    const verToken = crypto.randomBytes(32).toString('hex');
+    await User.create({
+      username, email: addr, password,
+      verificationToken:       verToken,
+      verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
 
-    const user = await User.create({ username, email, password });
-    res.status(201).json({ token: signToken(user._id), user: user.toPublic() });
+    try { await email.sendVerificationEmail(addr, verToken); }
+    catch (e) { console.error('Verification email failed:', e.message); }
+
+    res.status(201).json({ message: 'Account created! Check your email to verify your account.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ message: 'Token is required' });
+
+    const user = await User.findOne({
+      verificationToken:       token,
+      verificationTokenExpiry: { $gt: new Date() },
+    });
+    if (!user) return res.status(400).json({ message: 'Invalid or expired verification link' });
+
+    user.isVerified              = true;
+    user.verificationToken       = null;
+    user.verificationTokenExpiry = null;
+    await user.save();
+
+    res.json({ message: 'Email verified! You can now log in.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -26,10 +57,12 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const { email: addr, password } = req.body;
+    const user = await User.findOne({ email: addr });
     if (!user || !(await user.comparePassword(password)))
       return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user.isVerified)
+      return res.status(403).json({ message: 'Please verify your email before logging in. Check your inbox.' });
     res.json({ token: signToken(user._id), user: user.toPublic() });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -40,19 +73,17 @@ exports.getMe = (req, res) => res.json({ user: req.user.toPublic() });
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { username, email } = req.body;
-    if (!username && !email) return res.status(400).json({ message: 'Nothing to update' });
+    const { username, email: addr } = req.body;
+    if (!username && !addr) return res.status(400).json({ message: 'Nothing to update' });
 
     const updates = {};
     if (username && username !== req.user.username) {
-      const taken = await User.findOne({ username });
-      if (taken) return res.status(409).json({ message: 'Username already taken' });
+      if (await User.findOne({ username })) return res.status(409).json({ message: 'Username already taken' });
       updates.username = username;
     }
-    if (email && email !== req.user.email) {
-      const taken = await User.findOne({ email });
-      if (taken) return res.status(409).json({ message: 'Email already in use' });
-      updates.email = email;
+    if (addr && addr !== req.user.email) {
+      if (await User.findOne({ email: addr })) return res.status(409).json({ message: 'Email already in use' });
+      updates.email = addr;
     }
 
     const updated = await User.findByIdAndUpdate(req.user._id, updates, { new: true });
@@ -64,20 +95,20 @@ exports.updateProfile = async (req, res) => {
 
 exports.forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'Email is required' });
+    const { email: addr } = req.body;
+    if (!addr) return res.status(400).json({ message: 'Email is required' });
 
-    const user = await User.findOne({ email: email.toLowerCase() });
-    // Always respond 200 to avoid leaking which emails exist
-    if (!user) return res.json({ message: 'If that email exists, a reset token was generated.' });
+    const user = await User.findOne({ email: addr.toLowerCase() });
+    if (user) {
+      const token  = crypto.randomBytes(32).toString('hex');
+      user.resetToken       = token;
+      user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+      await user.save();
+      try { await email.sendPasswordResetEmail(addr, token); }
+      catch (e) { console.error('Reset email failed:', e.message); }
+    }
 
-    const token  = crypto.randomBytes(20).toString('hex');
-    user.resetToken       = token;
-    user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-    await user.save();
-
-    console.log(`[Password Reset] Token for ${email}: ${token}`);
-    res.json({ message: 'Reset token generated.', devToken: token });
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -90,10 +121,10 @@ exports.resetPassword = async (req, res) => {
     if (newPassword.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
 
     const user = await User.findOne({
-      resetToken: token,
+      resetToken:       token,
       resetTokenExpiry: { $gt: new Date() },
     });
-    if (!user) return res.status(400).json({ message: 'Invalid or expired reset token' });
+    if (!user) return res.status(400).json({ message: 'Invalid or expired reset link' });
 
     user.password         = newPassword;
     user.resetToken       = null;
