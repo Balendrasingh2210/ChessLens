@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
   withCredentials: true,
   timeout: 60000, // 60s — import can take a moment fetching from chess.com/lichess
 });
