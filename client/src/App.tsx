@@ -10,6 +10,8 @@ import Games from './pages/Games';
 import GameReview from './pages/GameReview';
 import Puzzles from './pages/Puzzles';
 import Analysis from './pages/Analysis';
+import Settings from './pages/Settings';
+import ForgotPassword from './pages/ForgotPassword';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuthStore();
@@ -28,8 +30,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login"    element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login"           element={<Login />} />
+        <Route path="/register"        element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route path="/"               element={<Dashboard />} />
           <Route path="/connect"        element={<ConnectAccount />} />
@@ -37,6 +40,7 @@ export default function App() {
           <Route path="/games/:id"      element={<GameReview />} />
           <Route path="/analysis"       element={<Analysis />} />
           <Route path="/puzzles"        element={<Puzzles />} />
+          <Route path="/settings"       element={<Settings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

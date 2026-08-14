@@ -221,7 +221,12 @@ export default function Dashboard() {
                       </span>
                       <div className={s.gameInfo}>
                         <span className={s.opponent}>vs {g.opponent}</span>
-                        <span className={s.gameMeta}>{g.opening ?? 'Unknown opening'} · {g.platform}</span>
+                        <span className={s.gameMeta}>
+                        {g.opening
+                          ? <Link to={`/games?opening=${encodeURIComponent(g.opening)}`} className={s.openingLink} onClick={e => e.stopPropagation()}>{g.opening}</Link>
+                          : 'Unknown opening'
+                        } · {g.platform}
+                      </span>
                       </div>
                       <span className={s.accuracy}>
                         {g.accuracy != null ? `${g.accuracy}%` : '—'}

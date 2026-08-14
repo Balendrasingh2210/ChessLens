@@ -52,9 +52,13 @@ export default function Layout() {
 
         {/* User section */}
         <div className={styles.userSection}>
-          <div className={styles.userAvatar}>{initial}</div>
+          <button className={styles.userAvatarBtn} onClick={() => navigate('/settings')} title="Settings">
+            <div className={styles.userAvatar}>{initial}</div>
+          </button>
           <div className={styles.userInfo}>
-            <span className={styles.userName}>{user?.username}</span>
+            <button className={styles.userNameBtn} onClick={() => navigate('/settings')}>
+              {user?.username}
+            </button>
             <span className={styles.userSub}>
               {user?.connectedAccounts?.length
                 ? `${user.connectedAccounts.length} account${user.connectedAccounts.length > 1 ? 's' : ''} connected`
@@ -74,6 +78,27 @@ export default function Layout() {
       <main className={styles.main}>
         <Outlet />
       </main>
+
+      {/* Mobile bottom nav */}
+      <nav className={styles.bottomNav}>
+        {NAV.map(({ to, label, Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) =>
+              `${styles.bottomNavLink} ${isActive ? styles.bottomActive : ''}`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
+                <span>{label}</span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }

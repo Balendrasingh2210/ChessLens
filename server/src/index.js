@@ -35,7 +35,7 @@ if (process.env.NODE_ENV === 'production') {
 const PORT = process.env.PORT || 5001;
 
 async function recoverStuckGames() {
-  // Reset any games that were mid-analysis when the server last crashed
+  // Reset games that were mid-analysis when the server last crashed
   const stuck = await AnalyzedGame.find({ analysisStatus: 'analyzing' }).select('_id userId');
   if (stuck.length) {
     await AnalyzedGame.updateMany(
@@ -45,7 +45,17 @@ async function recoverStuckGames() {
     console.log(`♻️  Reset ${stuck.length} stuck game(s) to pending`);
   }
 
-  // Enqueue ALL pending games (covers both newly reset and previously pending)
+  // Also reset error games so they get another chance on restart
+  const errored = await AnalyzedGame.find({ analysisStatus: 'error' }).select('_id userId');
+  if (errored.length) {
+    await AnalyzedGame.updateMany(
+      { _id: { $in: errored.map(g => g._id) } },
+      { analysisStatus: 'pending' }
+    );
+    console.log(`🔁 Reset ${errored.length} error game(s) to pending for retry`);
+  }
+
+  // Enqueue ALL pending games (covers stuck, errored, and previously pending)
   const pending = await AnalyzedGame.find({ analysisStatus: 'pending' }).select('_id userId');
   if (!pending.length) return;
   console.log(`📋 Queueing ${pending.length} pending game(s) for analysis`);

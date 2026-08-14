@@ -309,6 +309,25 @@ exports.disconnectAccount = async (req, res) => {
 // YouTube recommendations moved to browser — see client/src/hooks/useYouTubeRecs.ts
 
 /**
+ * Retry a failed game — resets status to pending and re-enqueues
+ */
+exports.retryGame = async (req, res) => {
+  try {
+    const game = await AnalyzedGame.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!game) return res.status(404).json({ message: 'Game not found' });
+    if (game.analysisStatus !== 'error')
+      return res.status(400).json({ message: 'Only error-status games can be retried' });
+
+    game.analysisStatus = 'pending';
+    await game.save();
+    await enqueueGame(game._id.toString(), req.user._id.toString());
+    res.json({ message: 'Game queued for retry' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * Get a single analyzed game with full details
  */
 exports.getGame = async (req, res) => {

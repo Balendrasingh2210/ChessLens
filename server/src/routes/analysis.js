@@ -35,8 +35,20 @@ router.get('/status', protect, async (req, res) => {
 // Get breakdown of mistakes across all games (for charts)
 router.get('/breakdown', protect, async (req, res) => {
   try {
+    const limit = parseInt(req.query.limit) || 0;
+    const baseMatch = { userId: req.user._id, analysisStatus: 'done' };
+
+    let matchStage = baseMatch;
+    if (limit > 0) {
+      const recent = await AnalyzedGame.find(baseMatch)
+        .sort({ playedAt: -1 })
+        .limit(limit)
+        .select('_id');
+      matchStage = { ...baseMatch, _id: { $in: recent.map(g => g._id) } };
+    }
+
     const result = await AnalyzedGame.aggregate([
-      { $match: { userId: req.user._id, analysisStatus: 'done' } },
+      { $match: matchStage },
       { $unwind: '$mistakes' },
       {
         $group: {

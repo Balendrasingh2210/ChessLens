@@ -19,11 +19,19 @@ const LABELS: Record<string, string> = {
   'other': 'Other',
 };
 
+const LIMITS = [
+  { label: 'Last 10',  value: 10 },
+  { label: 'Last 30',  value: 30 },
+  { label: 'All Time', value: 0  },
+];
+
 export default function Analysis() {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile]     = useState<any>(null);
   const [breakdown, setBreakdown] = useState<any>(null);
-  const [summary, setSummary] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [summary, setSummary]     = useState<string | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [limit, setLimit]         = useState(0);
+  const [chartLoading, setChartLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -35,6 +43,18 @@ export default function Analysis() {
       setBreakdown(b.data);
     }).finally(() => setLoading(false));
   }, []);
+
+  const applyLimit = async (newLimit: number) => {
+    if (newLimit === limit) return;
+    setLimit(newLimit);
+    setChartLoading(true);
+    try {
+      const params = newLimit > 0 ? `?limit=${newLimit}` : '';
+      const { data } = await api.get(`/analysis/breakdown${params}`);
+      setBreakdown(data);
+    } catch { /* ignore */ }
+    finally { setChartLoading(false); }
+  };
 
   if (loading) return <div className={s.loading}><div className={s.loadingSpinner} />Building your analysis...</div>;
 
@@ -58,7 +78,20 @@ export default function Analysis() {
 
   return (
     <div className={s.page}>
-      <h1 className={s.title}>Analysis</h1>
+      <div className={s.titleRow}>
+        <h1 className={s.title}>Analysis</h1>
+        <div className={s.limitBar}>
+          {LIMITS.map(l => (
+            <button
+              key={l.value}
+              className={`${s.limitBtn} ${limit === l.value ? s.limitActive : ''}`}
+              onClick={() => applyLimit(l.value)}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {summary && (
         <div className={s.coachCard}>
@@ -74,7 +107,7 @@ export default function Analysis() {
         <Stat label="Record" value={`${profile.results.wins}W / ${profile.results.losses}L / ${profile.results.draws}D`} />
       </div>
 
-      <div className={s.charts}>
+      <div className={`${s.charts} ${chartLoading ? s.chartsLoading : ''}`}>
         <div className={s.chartCard}>
           <h3 className={s.chartTitle}>Mistakes by Category</h3>
           <ResponsiveContainer width="100%" height={280}>

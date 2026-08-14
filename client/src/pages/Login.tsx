@@ -33,6 +33,7 @@ export default function Login() {
           <input className={s.input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
           <button className={s.btn} disabled={loading}>{loading ? 'Signing in...' : 'Sign In'}</button>
         </form>
+        <p className={s.footer}><Link to="/forgot-password">Forgot password?</Link></p>
         <p className={s.footer}>New here? <Link to="/register">Create an account</Link></p>
       </div>
     </div>

@@ -214,3 +214,16 @@
 .histTheme { color: var(--text-sub); }
 .histTime { color: var(--text-muted); font-size: 0.75rem; text-align: right; }
 .histDate { color: var(--text-muted); font-size: 0.75rem; text-align: right; }
+
+/* ── Mobile ───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page { padding: 14px 16px; }
+  .header { margin-bottom: 14px; }
+  .body { flex-direction: column; gap: 14px; }
+  .boardWrap { width: 100%; }
+  .panel { min-width: 0; }
+  .statsRow { gap: 6px; }
+  .stat { padding: 10px 14px; min-width: 70px; }
+  .histPage { gap: 16px; }
+  .themeRow { grid-template-columns: 100px 1fr 38px 46px; }
+}

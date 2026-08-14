@@ -223,6 +223,8 @@
 .gameInfo { flex: 1; min-width: 0; }
 .opponent { font-size: 0.875rem; font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gameMeta { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.openingLink { color: var(--text-muted); text-decoration: none; border-bottom: 1px dashed var(--border); transition: color var(--transition), border-color var(--transition); }
+.openingLink:hover { color: var(--green); border-bottom-color: var(--green); }
 .accuracy { font-size: 0.82rem; color: var(--blue); font-weight: 700; flex-shrink: 0; }
 .noGames { color: var(--text-sub); font-size: 0.875rem; padding: 24px 0; text-align: center; }
 
@@ -355,3 +357,12 @@
   overflow: hidden;
 }
 .videoChannel { font-size: 0.68rem; color: var(--text-muted); }
+
+/* ── Mobile ───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page { padding: 16px; }
+  .statsRow { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .charts { grid-template-columns: 1fr; }
+  .cols { grid-template-columns: 1fr; }
+  .trendCard, .chartCard, .gamesCard { padding: 14px; }
+}

@@ -1,5 +1,6 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const jwt    = require('jsonwebtoken');
+const crypto = require('crypto');
+const User   = require('../models/User');
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
@@ -56,6 +57,50 @@ exports.updateProfile = async (req, res) => {
 
     const updated = await User.findByIdAndUpdate(req.user._id, updates, { new: true });
     res.json({ user: updated.toPublic() });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    // Always respond 200 to avoid leaking which emails exist
+    if (!user) return res.json({ message: 'If that email exists, a reset token was generated.' });
+
+    const token  = crypto.randomBytes(20).toString('hex');
+    user.resetToken       = token;
+    user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    console.log(`[Password Reset] Token for ${email}: ${token}`);
+    res.json({ message: 'Reset token generated.', devToken: token });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) return res.status(400).json({ message: 'Token and new password are required' });
+    if (newPassword.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: new Date() },
+    });
+    if (!user) return res.status(400).json({ message: 'Invalid or expired reset token' });
+
+    user.password         = newPassword;
+    user.resetToken       = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+
+    res.json({ message: 'Password reset successfully. You can now log in.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -286,7 +286,7 @@
 
 /* ── Move panel — compact fixed width ────────────────────────────────── */
 .movePanel {
-  width: 520px;
+  width: 300px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -442,3 +442,20 @@
   overflow: hidden;
 }
 .videoChannel { font-size: 0.65rem; color: var(--text-muted); }
+
+/* ── Mobile ───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page { height: auto; overflow: auto; }
+  .topBar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .gameTitle { font-size: 0.8rem; }
+  .body { flex-direction: column; overflow: visible; }
+  .boardCol { padding: 10px 12px; gap: 6px; }
+  .boardRow { max-width: 100%; }
+  .controls { max-width: 100%; }
+  .annotation { max-width: 100%; }
+  .summary { max-width: 100%; }
+  .keyHint { max-width: 100%; }
+  .playerTag { max-width: 100%; }
+  .movePanel { width: 100%; border-left: none; border-top: 1px solid var(--border); max-height: 360px; }
+  .moveList { max-height: 180px; }
+}

@@ -202,8 +202,28 @@
   font-weight: 600;
   white-space: nowrap;
 }
+.statusCell { display: flex; align-items: center; gap: 6px; }
+
+.retryBtn {
+  padding: 2px 7px;
+  background: transparent;
+  border: 1px solid rgba(248,81,73,0.35);
+  border-radius: 999px;
+  color: var(--red);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.retryBtn:hover { background: rgba(248,81,73,0.12); border-color: var(--red); transform: rotate(180deg); }
+
 .status_pending   { background: rgba(210,153,34,0.15);  color: var(--orange); border: 1px solid rgba(210,153,34,0.3); }
-.status_analyzing { background: rgba(56,139,253,0.12);  color: var(--blue);   border: 1px solid rgba(56,139,253,0.3);  }
+.status_analyzing { background: rgba(56,139,253,0.12);  color: var(--blue);   border: 1px solid rgba(56,139,253,0.3); animation: analyzingPulse 1.6s ease-in-out infinite; }
+@keyframes analyzingPulse {
+  0%, 100% { background: rgba(56,139,253,0.12); border-color: rgba(56,139,253,0.3); }
+  50%       { background: rgba(56,139,253,0.25); border-color: rgba(56,139,253,0.6); }
+}
 .status_done      { background: rgba(63,185,80,0.12);   color: var(--green);  border: 1px solid rgba(63,185,80,0.25); }
 .status_error     { background: rgba(248,81,73,0.12);   color: var(--red);    border: 1px solid rgba(248,81,73,0.3);   }
 .date { color: var(--text-muted); font-size: 0.78rem; }
@@ -244,3 +264,23 @@
 .pageBtn:hover:not(:disabled) { border-color: var(--green); color: var(--green); background: var(--green-glow); }
 .pageBtn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pageInfo { color: var(--text-muted); font-size: 0.85rem; }
+
+/* ── Mobile ───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page { padding: 16px; }
+  .thead { display: none; }
+  .row {
+    grid-template-columns: 36px 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 4px 8px;
+    padding: 10px 12px;
+  }
+  .opening, .timeCtrl, .date { display: none; }
+  .opponent { grid-column: 2; grid-row: 1; }
+  .accuracy { grid-column: 3; grid-row: 1; }
+  .statusCell { grid-column: 2 / 4; grid-row: 2; }
+  .filterBar { gap: 6px; padding: 10px; }
+  .filterGroup { flex-wrap: wrap; }
+  .filterInput { width: 130px; }
+  .analyzingBanner { font-size: 0.76rem; }
+}

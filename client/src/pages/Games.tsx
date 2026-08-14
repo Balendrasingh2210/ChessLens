@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import s from './Games.module.css';
 
@@ -28,6 +28,8 @@ const STATUS_LABEL: Record<string, string> = {
 const PAGE_SIZE = 20;
 
 export default function Games() {
+  const [searchParams] = useSearchParams();
+
   const [allGames, setAllGames]   = useState<Game[]>([]);
   const [total, setTotal]         = useState(0);
   const [page, setPage]           = useState(1);
@@ -35,10 +37,10 @@ export default function Games() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting]   = useState(false);
 
-  // Filters
+  // Filters — seed openingQ from ?opening= URL param
   const [platform,    setPlatform]    = useState('');
   const [result,      setResult]      = useState('');
-  const [openingQ,    setOpeningQ]    = useState('');
+  const [openingQ,    setOpeningQ]    = useState(() => searchParams.get('opening') ?? '');
   const [timeControl, setTimeControl] = useState('');
 
   // Load all games once (pagination happens client-side after filtering)
@@ -94,6 +96,14 @@ export default function Games() {
     setResult('');
     setOpeningQ('');
     setTimeControl('');
+  };
+
+  const handleRetry = async (e: React.MouseEvent, gameId: string) => {
+    e.preventDefault();
+    try {
+      await api.post(`/games/${gameId}/retry`);
+      load();
+    } catch { /* ignore */ }
   };
 
   const handleDeleteAll = async () => {
@@ -239,8 +249,13 @@ export default function Games() {
                 <span className={s.opening}>{g.opening ?? '—'}</span>
                 <span className={s.timeCtrl}>{g.timeControl ?? '—'}</span>
                 <span className={s.accuracy}>{g.accuracy != null ? `${g.accuracy}%` : '—'}</span>
-                <span className={`${s.statusBadge} ${s[`status_${g.analysisStatus}`]}`}>
-                  {STATUS_LABEL[g.analysisStatus] ?? g.analysisStatus}
+                <span className={s.statusCell}>
+                  <span className={`${s.statusBadge} ${s[`status_${g.analysisStatus}`]}`}>
+                    {STATUS_LABEL[g.analysisStatus] ?? g.analysisStatus}
+                  </span>
+                  {g.analysisStatus === 'error' && (
+                    <button className={s.retryBtn} onClick={(e) => handleRetry(e, g._id)} title="Retry analysis">↻</button>
+                  )}
                 </span>
                 <span className={s.date}>{new Date(g.playedAt).toLocaleDateString()}</span>
               </Link>
