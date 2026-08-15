@@ -358,11 +358,58 @@
 }
 .videoChannel { font-size: 0.68rem; color: var(--text-muted); }
 
+/* ── Opening Stats ──────────────────────────────────────────────── */
+.openingCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  margin-bottom: 16px;
+}
+
+.openingTable { width: 100%; }
+
+.openingHead {
+  display: grid;
+  grid-template-columns: 1fr 60px 130px 80px;
+  padding: 0 10px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.openingRow {
+  display: grid;
+  grid-template-columns: 1fr 60px 130px 80px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--transition);
+  font-size: 0.85rem;
+}
+.openingRow:hover { background: var(--bg-hover); }
+
+.openingName { color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 12px; }
+.openingCount { color: var(--text-sub); text-align: center; }
+.openingRecord { color: var(--text-sub); font-size: 0.8rem; }
+.openingAcc { color: var(--blue); font-weight: 700; text-align: right; }
+.win { color: var(--green); font-weight: 600; }
+.loss { color: var(--red); font-weight: 600; }
+.draw { color: var(--text-sub); }
+.winPct { color: var(--text-muted); font-size: 0.75rem; }
+
 /* ── Mobile ───────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .page { padding: 16px; }
   .statsRow { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .charts { grid-template-columns: 1fr; }
   .cols { grid-template-columns: 1fr; }
-  .trendCard, .chartCard, .gamesCard { padding: 14px; }
+  .trendCard, .chartCard, .gamesCard, .openingCard { padding: 14px; }
+  .openingHead, .openingRow { grid-template-columns: 1fr 50px 80px; }
+  .openingAcc { display: none; }
 }

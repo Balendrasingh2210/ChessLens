@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import api from '../utils/api';
 import s from './Auth.module.css';
 
 export default function Login() {
@@ -8,12 +9,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendDone, setResendDone] = useState(false);
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
+  const unverified = error.toLowerCase().includes('verify your email');
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(''); setLoading(true);
+    setError(''); setResendDone(false); setLoading(true);
     try {
       await login(email, password);
       navigate('/');
@@ -22,14 +27,40 @@ export default function Login() {
     } finally { setLoading(false); }
   };
 
+  const resend = async () => {
+    setResendLoading(true);
+    try {
+      await api.post('/auth/resend-verification', { email });
+      setResendDone(true);
+    } finally { setResendLoading(false); }
+  };
+
   return (
     <div className={s.page}>
       <div className={s.card}>
         <div className={s.brand}>♟ ChessLens</div>
         <h1 className={s.title}>Sign in</h1>
-        {error && <div className={s.error}>{error}</div>}
+        {error && (
+          <div className={s.error}>
+            {error}
+            {unverified && (
+              <div style={{ marginTop: 8 }}>
+                {resendDone
+                  ? <span style={{ color: 'var(--green)' }}>✓ Verification email sent — check your inbox</span>
+                  : <button
+                      style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontSize: 'inherit' }}
+                      onClick={resend}
+                      disabled={resendLoading}
+                    >
+                      {resendLoading ? 'Sending…' : 'Resend verification email'}
+                    </button>
+                }
+              </div>
+            )}
+          </div>
+        )}
         <form onSubmit={submit} className={s.form}>
-          <input className={s.input} type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <input className={s.input} type="email" placeholder="Email" value={email} onChange={e => { setEmail(e.target.value); setResendDone(false); }} required />
           <input className={s.input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
           <button className={s.btn} disabled={loading}>{loading ? 'Signing in...' : 'Sign In'}</button>
         </form>

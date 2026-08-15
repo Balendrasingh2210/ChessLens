@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceLine,
@@ -9,6 +9,15 @@ import api from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { useWeaknessRecommendations } from '../hooks/useYouTubeRecs';
 import s from './Dashboard.module.css';
+
+interface OpeningStat {
+  opening: string;
+  count: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  avgAccuracy: number | null;
+}
 
 interface DashboardData {
   weaknessProfile: {
@@ -30,6 +39,7 @@ interface DashboardData {
   }>;
   puzzleStats: { total: number; correct: number };
   coachingSummary: string | null;
+  openingStats: OpeningStat[];
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -45,6 +55,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function Dashboard() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -239,6 +250,46 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
+          {/* Opening Stats */}
+          {(data?.openingStats?.length ?? 0) > 0 && (
+            <div className={s.openingCard}>
+              <div className={s.cardHeader}>
+                <h3 className={s.cardTitle}>Openings</h3>
+                <span className={s.trendAvg}>click to filter games</span>
+              </div>
+              <div className={s.openingTable}>
+                <div className={s.openingHead}>
+                  <span>Opening</span>
+                  <span>Games</span>
+                  <span>W / D / L</span>
+                  <span>Accuracy</span>
+                </div>
+                {data!.openingStats.map(o => {
+                  const winPct = Math.round((o.wins / o.count) * 100);
+                  return (
+                    <div
+                      key={o.opening}
+                      className={s.openingRow}
+                      onClick={() => navigate(`/games?opening=${encodeURIComponent(o.opening)}`)}
+                    >
+                      <span className={s.openingName}>{o.opening}</span>
+                      <span className={s.openingCount}>{o.count}</span>
+                      <span className={s.openingRecord}>
+                        <span className={s.win}>{o.wins}</span>
+                        {' / '}
+                        <span className={s.draw}>{o.draws}</span>
+                        {' / '}
+                        <span className={s.loss}>{o.losses}</span>
+                        <span className={s.winPct}> ({winPct}%)</span>
+                      </span>
+                      <span className={s.openingAcc}>{o.avgAccuracy != null ? `${o.avgAccuracy}%` : '—'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Recommended puzzles */}
           {profile?.recommendedThemes?.length ? (

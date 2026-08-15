@@ -448,14 +448,17 @@
   .page { height: auto; overflow: auto; }
   .topBar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
   .gameTitle { font-size: 0.8rem; }
+  .gameNavBtn { padding: 4px 8px; font-size: 0.75rem; }
+  .gameNavPos { font-size: 0.75rem; }
   .body { flex-direction: column; overflow: visible; }
   .boardCol { padding: 10px 12px; gap: 6px; }
   .boardRow { max-width: 100%; }
   .controls { max-width: 100%; }
-  .annotation { max-width: 100%; }
+  .annotation { max-width: 100%; font-size: 0.82rem; }
   .summary { max-width: 100%; }
-  .keyHint { max-width: 100%; }
+  .keyHint { display: none; }
   .playerTag { max-width: 100%; }
-  .movePanel { width: 100%; border-left: none; border-top: 1px solid var(--border); max-height: 360px; }
-  .moveList { max-height: 180px; }
+  .movePanel { width: 100%; border-left: none; border-top: 1px solid var(--border); max-height: none; }
+  .moveList { max-height: 220px; }
+  .mistakeList { max-height: 260px; }
 }

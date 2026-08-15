@@ -62,6 +62,7 @@ async function recoverStuckGames() {
 async function start() {
   await connectDB();
   await connectRedis();
+  initQueue();
 
   const server = app.listen(PORT, async () => {
     console.log(`♟  ChessLens server running on port ${PORT}`);

@@ -9,7 +9,7 @@ const { getWeaknessRecommendations } = require('../services/youtubeService');
 // Full dashboard data in one call
 router.get('/dashboard', protect, async (req, res) => {
   try {
-    const [user, weaknessProfile, recentGames, puzzleStats] = await Promise.all([
+    const [user, weaknessProfile, recentGames, puzzleStats, openingStats] = await Promise.all([
       User.findById(req.user._id).select('-password'),
       WeaknessProfile.findOne({ userId: req.user._id }),
       AnalyzedGame.find({ userId: req.user._id, analysisStatus: 'done' })
@@ -18,13 +18,19 @@ router.get('/dashboard', protect, async (req, res) => {
         .select('opponent result accuracy platform playedAt opening playerColor playerRating opponentRating'),
       PuzzleAttempt.aggregate([
         { $match: { userId: req.user._id } },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            correct: { $sum: { $cond: ['$correct', 1, 0] } },
-          },
-        },
+        { $group: { _id: null, total: { $sum: 1 }, correct: { $sum: { $cond: ['$correct', 1, 0] } } } },
+      ]),
+      AnalyzedGame.aggregate([
+        { $match: { userId: req.user._id, analysisStatus: 'done', opening: { $ne: null } } },
+        { $group: {
+          _id: '$opening',
+          count:       { $sum: 1 },
+          wins:        { $sum: { $cond: [{ $eq: ['$result', 'win']  }, 1, 0] } },
+          losses:      { $sum: { $cond: [{ $eq: ['$result', 'loss'] }, 1, 0] } },
+          avgAccuracy: { $avg: '$accuracy' },
+        }},
+        { $sort: { count: -1 } },
+        { $limit: 8 },
       ]),
     ]);
 
@@ -33,6 +39,14 @@ router.get('/dashboard', protect, async (req, res) => {
       weaknessProfile,
       recentGames,
       puzzleStats: puzzleStats[0] || { total: 0, correct: 0 },
+      openingStats: openingStats.map(o => ({
+        opening:     o._id,
+        count:       o.count,
+        wins:        o.wins,
+        losses:      o.losses,
+        draws:       o.count - o.wins - o.losses,
+        avgAccuracy: o.avgAccuracy != null ? Math.round(o.avgAccuracy) : null,
+      })),
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

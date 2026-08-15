@@ -93,6 +93,27 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email: addr } = req.body;
+    if (!addr) return res.status(400).json({ message: 'Email is required' });
+
+    const user = await User.findOne({ email: addr.toLowerCase() });
+    if (user && !user.isVerified) {
+      const verToken = require('crypto').randomBytes(32).toString('hex');
+      user.verificationToken       = verToken;
+      user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await user.save();
+      try { await email.sendVerificationEmail(addr, verToken); }
+      catch (e) { console.error('Resend verification email failed:', e.message); }
+    }
+
+    res.json({ message: 'If that email has an unverified account, a new link has been sent.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.forgotPassword = async (req, res) => {
   try {
     const { email: addr } = req.body;
