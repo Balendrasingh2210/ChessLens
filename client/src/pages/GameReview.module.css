@@ -195,10 +195,17 @@
 }
 .keyHint { font-size: 0.65rem; color: var(--text-muted); text-align: center; width: 100%; max-width: 780px; }
 
+/* ── Annotation wrapper — lives at top of right panel ─────────────────── */
+.annotationWrap {
+  padding: 12px 12px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
 /* ── Annotation ───────────────────────────────────────────────────────── */
 .annotation {
   width: 100%;
-  max-width: 780px;
   border: 1px solid var(--border);
   border-left-width: 4px;
   border-radius: var(--radius);
@@ -207,13 +214,12 @@
   flex-direction: column;
   gap: 8px;
   box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
 }
 .annotationEmpty {
   font-size: 0.82rem;
   color: var(--text-muted);
-  padding: 8px 0;
-  width: 100%;
-  max-width: 780px;
+  padding: 8px 4px 12px;
 }
 .annotationHead { display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem; font-weight: 700; }
 .annCategory {
@@ -286,7 +292,7 @@
 
 /* ── Move panel — compact fixed width ────────────────────────────────── */
 .movePanel {
-  width: 300px;
+  width: 340px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;

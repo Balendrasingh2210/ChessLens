@@ -1,10 +1,5 @@
 const { Chess } = require('chess.js');
 const { spawn } = require('child_process');
-const path = require('path');
-
-const STOCKFISH_JS = path.resolve(
-  require.resolve('stockfish/src/stockfish-nnue-16-single.js')
-);
 
 // ─── Analysis time budget per position (ms) ────────────────────────────────────
 const MOVETIME = 300;
@@ -39,7 +34,7 @@ let busy      = false;
 
 function startStockfish() {
   if (sfProcess) return;
-  sfProcess = spawn(process.execPath, [STOCKFISH_JS], { stdio: ['pipe', 'pipe', 'ignore'] });
+  sfProcess = spawn('stockfish', [], { stdio: ['pipe', 'pipe', 'ignore'] });
   sfProcess.on('error', () => { sfProcess = null; sfReady = false; });
   sfProcess.on('exit',  () => { sfProcess = null; sfReady = false; busy = false; });
   sfProcess.stdout.on('data', (data) => {

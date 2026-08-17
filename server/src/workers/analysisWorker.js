@@ -51,10 +51,9 @@ const initQueue = () => {
         const { mistakes, accuracy, moveHistory } = await analyzeGame(game.pgn, game.playerColor);
         await job.updateProgress(70);
 
-        // 2. Generate Claude explanations for the top 5 player mistakes (blunders + mistakes only)
+        // 2. Generate Groq explanations for all player mistakes (blunders, mistakes, inaccuracies)
         const topMistakes = mistakes
-          .filter((m) => (m.type === 'blunder' || m.type === 'mistake') && m.color === game.playerColor)
-          .slice(0, 5);
+          .filter((m) => m.color === game.playerColor);
 
         const withExplanations = await generateExplanations(topMistakes, game.playerColor);
         await job.updateProgress(90);
@@ -132,8 +131,7 @@ async function runAnalysisInBackground(gameDocId, userId) {
   try {
     const { mistakes, accuracy, moveHistory } = await analyzeGame(game.pgn, game.playerColor);
     const topMistakes = mistakes
-      .filter((m) => (m.type === 'blunder' || m.type === 'mistake') && m.color === game.playerColor)
-      .slice(0, 5);
+      .filter((m) => m.color === game.playerColor);
     const withExplanations = await generateExplanations(topMistakes, game.playerColor);
     const finalMistakes = mistakes.map((m) => {
       const explained = withExplanations.find((e) => e.moveNumber === m.moveNumber);

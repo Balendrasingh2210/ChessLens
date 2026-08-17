@@ -357,7 +357,7 @@ export default function GameReview() {
 
           {mistake.explanation
             ? <p className={s.annExpl}>🤖 {mistake.explanation}</p>
-            : <p className={s.annHint}>💡 Add ANTHROPIC_API_KEY to server/.env for AI explanations</p>
+            : null
           }
 
           {compareMode === 'best' && (
@@ -518,9 +518,6 @@ export default function GameReview() {
           </div>
           <div className={s.keyHint}>Use ← → arrow keys to navigate</div>
 
-          {/* Annotation box */}
-          {renderAnnotation()}
-
           {/* Summary */}
           <div className={s.summary}>
             <div className={s.sumItem}><span style={{ color: QUALITY.blunder.color }}>{blunderCount}</span>Blunders</div>
@@ -529,8 +526,12 @@ export default function GameReview() {
           </div>
         </div>
 
-        {/* Right: move list + jump to mistakes + video recs */}
+        {/* Right: annotation + move list + video recs */}
         <div className={s.movePanel}>
+          {/* Annotation box — sits above the move list */}
+          <div className={s.annotationWrap}>
+            {renderAnnotation()}
+          </div>
           <div className={s.movePanelHead}>
             <span className={s.movePanelTitle}>Move List</span>
             <span className={s.movePanelCount}>{moves.length} moves</span>

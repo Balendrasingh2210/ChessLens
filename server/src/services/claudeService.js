@@ -1,33 +1,29 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const Groq = require('groq-sdk');
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 15000 });
+const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = 'groq/compound-mini';
 
-/**
- * Generate plain-English explanations for a list of chess mistakes.
- * Batches all mistakes into a single Claude call to minimize API usage.
- */
 exports.generateExplanations = async (mistakes, playerColor) => {
   if (!mistakes || mistakes.length === 0) return [];
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.warn('⚠️  ANTHROPIC_API_KEY not set — skipping explanations');
+  if (!process.env.GROQ_API_KEY) {
+    console.warn('⚠️  GROQ_API_KEY not set — skipping explanations');
     return mistakes.map((m) => ({ ...m, explanation: null }));
   }
 
   const mistakeList = mistakes.map((m, i) =>
-    `Mistake ${i + 1} (Move ${m.moveNumber}, ${m.type}):
-- Position FEN: ${m.playedFen}
+    `Move ${i + 1} (Move ${m.moveNumber}, ${m.type}):
 - Player played: ${m.played}
 - Best move was: ${m.best}
-- Centipawn loss: ${m.delta}
+- Win chance lost: ${m.winDropPct}%
 - Category: ${m.category}`
   ).join('\n\n');
 
-  const prompt = `You are a chess coach analyzing mistakes made by a ${playerColor} player.
+  const prompt = `You are a chess coach analyzing moves made by a ${playerColor} player.
 
-For each mistake below, write a 2-3 sentence explanation in plain English that:
-1. States what was wrong with the move they played
-2. Explains why the best move was better
-3. Gives a practical tip to avoid this type of mistake in future
+For each move below, write a 2-3 sentence explanation in plain English.
+- For a "blunder": explain clearly what went wrong and why the best move was much better.
+- For a "mistake": explain the error and what the better move achieves.
+- For an "inaccuracy": gently note what was slightly suboptimal and what the better move does.
 
 Be specific, concise, and encouraging. Avoid excessive jargon.
 
@@ -40,14 +36,13 @@ Respond with a JSON array where each object has:
 Only return valid JSON, no other text.`;
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
+    const response = await client.chat.completions.create({
+      model: MODEL,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const text = response.content[0].text.trim();
-    // Strip markdown code blocks if present
+    const text = response.choices[0].message.content.trim();
     const json = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
     const explanations = JSON.parse(json);
 
@@ -56,16 +51,13 @@ Only return valid JSON, no other text.`;
       return { ...m, explanation: found?.explanation ?? null };
     });
   } catch (err) {
-    console.error('Claude API error:', err.message);
+    console.error('Groq API error:', err.message);
     return mistakes.map((m) => ({ ...m, explanation: null }));
   }
 };
 
-/**
- * Generate a personalized coaching summary from a user's weakness profile.
- */
 exports.generateCoachingSummary = async (profile) => {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
+  if (!process.env.GROQ_API_KEY) return null;
 
   const { topWeaknesses, averageAccuracy, gamesAnalyzed, results } = profile;
 
@@ -79,12 +71,12 @@ exports.generateCoachingSummary = async (profile) => {
 Be encouraging, specific about their biggest weakness, and give one actionable tip. Keep it conversational.`;
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const response = await client.chat.completions.create({
+      model: MODEL,
       max_tokens: 256,
       messages: [{ role: 'user', content: prompt }],
     });
-    return response.content[0].text.trim();
+    return response.choices[0].message.content.trim();
   } catch {
     return null;
   }
