@@ -93,7 +93,9 @@ const initQueue = () => {
     },
     {
       connection: getRedis(),
-      concurrency: 2, // analyze 2 games at a time
+      concurrency: 2,
+      lockDuration: 300000,  // 5 min — Stockfish + Claude can take ~1–2 min per game
+      lockRenewTime: 60000,  // renew lock every 60s
     }
   );
 
