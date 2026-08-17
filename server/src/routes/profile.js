@@ -1,3 +1,18 @@
+/**
+ * profile.js — routes for the dashboard and account management
+ *
+ * GET  /api/profile/dashboard         — single call that returns everything the
+ *                                       Dashboard page needs: user, weaknessProfile,
+ *                                       recentGames, puzzleStats, openingStats
+ * GET  /api/profile/recommendations   — YouTube video recs (requires YOUTUBE_API_KEY;
+ *                                       the real logic is client-side, this is a stub)
+ * DELETE /api/profile/accounts/:platform — remove a linked chess.com or lichess account
+ *
+ * All routes require authentication.
+ *
+ * @module routes/profile
+ */
+
 const router = require('express').Router();
 const { protect } = require('../middleware/auth');
 const User = require('../models/User');

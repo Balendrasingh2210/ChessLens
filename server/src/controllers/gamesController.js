@@ -1,3 +1,27 @@
+/**
+ * gamesController.js — game import, listing, and management
+ *
+ * Import pathways (all save to AnalyzedGame with status 'pending' then enqueue):
+ *   connectAccount()  — verify a chess.com/lichess username exists
+ *   importGames()     — server fetches from platform API
+ *   importRaw()       — client pre-fetched game objects (bypasses Chess.com CORS issues)
+ *   importPgn()       — user pastes raw multi-game PGN text
+ *
+ * All import functions:
+ *   1. Skip games already in the DB (deduplication by userId+platform+gameId)
+ *   2. Run ECO opening detection immediately (fast, no Stockfish needed)
+ *   3. Enqueue each new game for background Stockfish+Groq analysis
+ *
+ * Other endpoints:
+ *   getMyGames()       — paginated list, excludes heavy PGN/FEN fields
+ *   getGame()          — full detail for the review page
+ *   deleteAllGames()   — wipes all games for the user
+ *   retryGame()        — re-enqueues a game stuck in 'error' status
+ *   disconnectAccount()— removes a linked platform account
+ *
+ * @module controllers/gamesController
+ */
+
 const { Chess } = require('chess.js');
 const User = require('../models/User');
 const AnalyzedGame = require('../models/AnalyzedGame');

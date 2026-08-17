@@ -1,3 +1,25 @@
+/**
+ * puzzles.js — puzzle trainer routes
+ *
+ * GET  /api/puzzles/next      — serve the next puzzle for the user
+ *   Priority order for selecting a puzzle:
+ *     1. Local MongoDB (import-puzzles.js), filtered by weakness theme + rating band
+ *     2. Lichess live API (/api/puzzle/next) if local DB is empty
+ *     3. Hardcoded FALLBACK_PUZZLES if Lichess also fails
+ *
+ *   Theme selection (when no ?theme query param):
+ *     - User's WeaknessProfile.recommendedThemes, cycled by total attempt count
+ *     - Falls back to 'hangingPiece' for new users
+ *
+ * POST /api/puzzles/attempt   — record a solve attempt (correct/incorrect)
+ * GET  /api/puzzles/history   — last 50 attempts with per-theme accuracy stats
+ * GET  /api/puzzles/stats     — local DB puzzle count
+ *
+ * All routes require authentication.
+ *
+ * @module routes/puzzles
+ */
+
 const router       = require('express').Router();
 const { protect }  = require('../middleware/auth');
 const Puzzle        = require('../models/Puzzle');

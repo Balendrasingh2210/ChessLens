@@ -1,3 +1,23 @@
+/**
+ * User.js — Mongoose model for user accounts
+ *
+ * Fields:
+ *   username           — unique display name
+ *   email              — lowercased, unique
+ *   password           — bcrypt hash (cost=12), never returned in API responses
+ *   connectedAccounts  — linked chess.com / lichess accounts (platform + username)
+ *   isVerified         — email must be verified before login is allowed
+ *   verificationToken  — random 32-byte hex token, expires in 24h
+ *   resetToken         — password-reset token, expires in 1h
+ *
+ * Hooks / methods:
+ *   pre('save')        — hashes password whenever it is modified
+ *   comparePassword()  — bcrypt.compare helper
+ *   toPublic()         — returns the document without the password field
+ *
+ * @module models/User
+ */
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 

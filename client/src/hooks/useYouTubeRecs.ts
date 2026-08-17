@@ -1,3 +1,32 @@
+/**
+ * useYouTubeRecs.ts — client-side YouTube Data API v3 recommendations
+ *
+ * All YouTube calls are made from the browser using VITE_YOUTUBE_API_KEY.
+ * The server has a youtubeService.js stub but it is intentionally inert —
+ * YouTube quota is consumed by the client to avoid exposing the key server-side.
+ *
+ * Two hooks are exported:
+ *
+ *   useGameRecommendations(ctx: GameContext)
+ *     Returns up to 3 videos tailored to a specific game's opening, mistakes,
+ *     and accuracy tier. Videos change across games because selections are
+ *     seeded by a hash of the gameId, so the same weakness category yields
+ *     different videos for different games.
+ *
+ *   useWeaknessRecommendations(ctx: WeaknessContext)
+ *     Returns up to 3 videos based on the user's overall top weaknesses and
+ *     average accuracy (from their WeaknessProfile). Used on the Dashboard.
+ *
+ * Video selection strategy:
+ *   1. Opening-specific search (if a known opening name is available)
+ *   2. Category pool (TACTIC_POOL, ENDGAME_POOL, etc.) — seeded by gameId hash
+ *   3. Accuracy-tier pool (LOW/MID/HIGH/ELITE_ACC_POOL)
+ *   4. General fallback pool to fill remaining slots
+ *   Duplicates are removed by videoId before returning.
+ *
+ * If VITE_YOUTUBE_API_KEY is not set, all hooks return an empty array silently.
+ */
+
 import { useEffect, useState } from 'react';
 
 export interface VideoRec {

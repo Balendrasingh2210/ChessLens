@@ -1,3 +1,15 @@
+/**
+ * PuzzleAttempt.js — records each puzzle solve attempt
+ *
+ * Stored when the user submits an answer on the Puzzles page.
+ * Used to:
+ *   - Track puzzle solve rate by theme (byTheme in /history)
+ *   - Rotate through recommendedThemes cyclically (attempt count % themes.length)
+ *   - Show overall accuracy stats
+ *
+ * @module models/PuzzleAttempt
+ */
+
 const mongoose = require('mongoose');
 
 const puzzleAttemptSchema = new mongoose.Schema({

@@ -1,3 +1,22 @@
+/**
+ * Puzzle.js — Mongoose model for Lichess puzzles
+ *
+ * Populated by `server/import-puzzles.js` from the Lichess puzzle CSV (~4M rows).
+ * Without the import, the puzzle trainer falls back to a small hardcoded set
+ * or fetches live from the Lichess API (rate-limited).
+ *
+ * The `moves` field uses Lichess CSV format: moves[0] is the opponent's last
+ * game move (the "intro" that created the tactic). The puzzle route strips this
+ * move and advances the FEN before sending to the client.
+ *
+ * Indexes:
+ *   rating (single)           — for rating-band filtering
+ *   themes (single)           — for theme filtering
+ *   { themes, rating } (compound) — the hot query path for getLocalPuzzle()
+ *
+ * @module models/Puzzle
+ */
+
 const mongoose = require('mongoose');
 
 // Matches Lichess puzzle CSV schema:

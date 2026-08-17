@@ -1,3 +1,18 @@
+/**
+ * WeaknessProfile.js — Mongoose model for a user's aggregated weakness data
+ *
+ * One document per user (upserted by weaknessService.rebuildProfile).
+ * Rebuilt from scratch after each game analysis completes, so it always
+ * reflects the full history of analyzed games.
+ *
+ * Used by:
+ *   - Dashboard page    : radar chart, coaching tip
+ *   - Puzzles page      : recommendedThemes drives puzzle selection
+ *   - Analysis page     : breakdown charts
+ *
+ * @module models/WeaknessProfile
+ */
+
 const mongoose = require('mongoose');
 
 // Aggregated weakness profile per user — recomputed after each analysis batch

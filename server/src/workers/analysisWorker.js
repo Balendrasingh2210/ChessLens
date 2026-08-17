@@ -1,3 +1,26 @@
+/**
+ * analysisWorker.js — BullMQ job worker for the 'game-analysis' queue
+ *
+ * Orchestrates the full analysis pipeline for a single game:
+ *   1. analyzeGame()          — runs Stockfish on every position → mistakes + moveHistory
+ *   2. generateExplanations() — calls Groq AI for per-mistake coaching text
+ *   3. detectOpening()        — matches position FENs against ECO database
+ *   4. rebuildProfile()       — recomputes the user's WeaknessProfile
+ *
+ * Redis / BullMQ is optional. When Redis is unavailable this module falls back
+ * to a controlled in-memory queue with the same concurrency cap (LOCAL_CONCURRENCY=2).
+ * The Stockfish service is a singleton that serialises all calls internally,
+ * so concurrency=2 here just means two games can run their Stockfish calls
+ * interleaved, not in parallel.
+ *
+ * Exports:
+ *   initQueue()   — creates BullMQ Queue + Worker; no-op if Redis is down
+ *   getQueue()    — returns the BullMQ Queue instance (or null)
+ *   enqueueGame() — adds a game to whichever queue is available
+ *
+ * @module workers/analysisWorker
+ */
+
 const { Worker, Queue } = require('bullmq');
 const { getRedis } = require('../config/redis');
 const AnalyzedGame = require('../models/AnalyzedGame');

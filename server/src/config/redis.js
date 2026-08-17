@@ -1,3 +1,18 @@
+/**
+ * redis.js — Redis connection + cache helpers
+ *
+ * Redis is entirely optional. If REDIS_URL is unset or the server is
+ * unreachable, all cache reads return null and writes are silently dropped.
+ * BullMQ also falls back to an in-memory queue (see analysisWorker.js).
+ *
+ * Exports:
+ *   connectRedis()  — call once at startup
+ *   getRedis()      — returns the ioredis client if connected, else null
+ *   cache           — { get, set, del } helpers that swallow Redis errors
+ *
+ * @module config/redis
+ */
+
 const { Redis } = require('ioredis');
 
 let redis;

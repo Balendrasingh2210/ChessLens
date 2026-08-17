@@ -1,3 +1,20 @@
+/**
+ * chessComService.js — Chess.com public API adapter
+ *
+ * Chess.com's API is CORS-enabled from browsers, so game fetching can be
+ * done client-side too (see gamesController.importRaw for the client-side path).
+ * This server-side adapter is used when the server can reach Chess.com directly.
+ *
+ * Rate limits: Chess.com does not publish limits but blocks aggressive crawlers.
+ * We cache user profiles for 1 hour and game archives for 30 minutes.
+ *
+ * Game archive structure:
+ *   Chess.com organises games by month. We iterate archive URLs newest-first
+ *   and stop once we have enough games, to avoid fetching unnecessary months.
+ *
+ * @module services/chessComService
+ */
+
 const axios = require('axios');
 const { cache } = require('../config/redis');
 

@@ -1,3 +1,16 @@
+/**
+ * index.js — Express application entry point
+ *
+ * Responsibilities:
+ *  - Bootstraps MongoDB, Redis, and the BullMQ analysis queue
+ *  - Mounts all route groups under /api
+ *  - On startup, resets any games that were mid-analysis when the server
+ *    last crashed (stuck in 'analyzing' or 'error' state) and re-enqueues them
+ *
+ * Environment variables consumed here: PORT, CLIENT_URL
+ * See server/.env for the full variable list.
+ */
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');

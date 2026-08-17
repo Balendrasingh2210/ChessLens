@@ -1,3 +1,29 @@
+/**
+ * lichessService.js — Lichess API adapter + puzzle pool
+ *
+ * Two responsibilities:
+ *
+ * 1. Game import (verifyUser, fetchGames)
+ *    Lichess exports games as NDJSON (newline-delimited JSON). We request
+ *    clock times and opening tags so analysisWorker can use them.
+ *    Results are cached in Redis for 30 minutes.
+ *
+ * 2. Puzzle fetching (fetchPuzzle, fetchDailyPuzzle)
+ *    Lichess's /api/puzzle/next endpoint is rate-limited. We maintain a small
+ *    in-memory pool (POOL_SIZE=5 per theme) and silently refill it in the
+ *    background after each puzzle is served, so users rarely wait.
+ *
+ *    parseLichessPuzzle() advances the board by initialPly moves so the
+ *    returned FEN is the position the solver actually sees (after the opponent's
+ *    last move that created the tactic). solution[0] is validated to ensure
+ *    it is legal from that FEN.
+ *
+ * categoryToThemes maps our weakness categories to Lichess puzzle theme tags
+ * for targeted puzzle selection.
+ *
+ * @module services/lichessService
+ */
+
 const axios = require('axios');
 const { cache } = require('../config/redis');
 

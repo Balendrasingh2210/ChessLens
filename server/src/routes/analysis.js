@@ -1,3 +1,16 @@
+/**
+ * analysis.js — routes for weakness analysis data
+ *
+ * GET /api/analysis/profile    — weakness profile + Groq coaching summary
+ * GET /api/analysis/status     — count of games per analysisStatus
+ * GET /api/analysis/breakdown  — aggregated mistake counts by category and type
+ *                                (optional ?limit=N restricts to N most recent games)
+ *
+ * All routes require authentication (protect middleware).
+ *
+ * @module routes/analysis
+ */
+
 const router = require('express').Router();
 const { protect } = require('../middleware/auth');
 const WeaknessProfile = require('../models/WeaknessProfile');

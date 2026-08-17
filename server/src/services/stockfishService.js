@@ -1,3 +1,29 @@
+/**
+ * stockfishService.js — Stockfish engine wrapper + game analysis
+ *
+ * Architecture — singleton process:
+ *   A single Stockfish child process is shared across all analysis jobs.
+ *   An internal queue serialises calls so only one position is evaluated
+ *   at a time. This avoids spawning/killing Stockfish per game (expensive)
+ *   and ensures the UCI protocol isn't violated by concurrent writes.
+ *
+ * Win% model:
+ *   Centipawn scores are converted to win probabilities using the logistic
+ *   function from Lichess's accuracy metric: P(win) = 1/(1+e^(-0.00368208*cp))
+ *   Per-move accuracy is then: 103.1668 * exp(-0.04354 * winLossPct) - 3.1668
+ *   Move classification uses win-% drop thresholds: blunder≥20, mistake≥10, inaccuracy≥5.
+ *
+ * Key exported function:
+ *   analyzeGame(pgn, playerColor) → { mistakes, accuracy, moveHistory }
+ *
+ * Performance:
+ *   Each position is evaluated at MOVETIME=300ms. A 40-move game ≈ 24 seconds.
+ *   The eval for position N is cached and reused as "evalBefore" for move N+1,
+ *   halving the number of Stockfish calls needed.
+ *
+ * @module services/stockfishService
+ */
+
 const { Chess } = require('chess.js');
 const { spawn } = require('child_process');
 

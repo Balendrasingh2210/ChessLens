@@ -1,3 +1,25 @@
+/**
+ * authStore.ts — global authentication state (Zustand)
+ *
+ * The single source of truth for the logged-in user and JWT token.
+ * Token is persisted in localStorage under the key 'cl_token'.
+ *
+ * State:
+ *   user     — full user object (username, email, connectedAccounts) or null
+ *   token    — raw JWT string or null
+ *   loading  — true until loadUser() resolves; used to avoid flash-of-redirect
+ *
+ * Actions:
+ *   login()       — POST /auth/login → stores token, sets user
+ *   register()    — POST /auth/register (no auto-login; user must verify email first)
+ *   logout()      — clears localStorage and resets state
+ *   loadUser()    — called once on app mount; validates stored token with GET /auth/me
+ *   refreshUser() — silently re-fetches user (after profile update, etc.)
+ *
+ * Import from any component:
+ *   const { user, token, login, logout } = useAuthStore();
+ */
+
 import { create } from 'zustand';
 import api from '../utils/api';
 

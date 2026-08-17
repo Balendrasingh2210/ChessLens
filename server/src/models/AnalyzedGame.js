@@ -1,3 +1,24 @@
+/**
+ * AnalyzedGame.js — Mongoose model for a single analyzed chess game
+ *
+ * Lifecycle: pending → analyzing → done | error
+ *
+ * Key sub-documents:
+ *
+ *   moveHistory  — one entry per move (both sides); populated by stockfishService.
+ *     Fields: moveNum, color, san, evalAfterWhite (cp), winPct, delta (win% drop),
+ *     classification (best/excellent/good/inaccuracy/mistake/blunder), bestMove (SAN).
+ *
+ *   mistakes     — subset of moveHistory where classification is blunder/mistake/inaccuracy.
+ *     Extra fields: playedFen, evalBefore/After/Best (cp), winBefore/AfterPlayed/DropPct,
+ *     category (tactical/hanging-piece/opening/endgame/positional/time-pressure/king-safety),
+ *     explanation (Groq AI text), clockBefore (seconds remaining).
+ *
+ * Index: { userId, platform, gameId } — unique constraint prevents duplicate imports.
+ *
+ * @module models/AnalyzedGame
+ */
+
 const mongoose = require('mongoose');
 
 // Per-move eval entry for ALL moves (both sides, populated after analysis)

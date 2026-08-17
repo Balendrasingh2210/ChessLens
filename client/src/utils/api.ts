@@ -1,3 +1,17 @@
+/**
+ * api.ts — shared Axios instance for all backend requests
+ *
+ * Configuration:
+ *   baseURL  — /api in production (Nginx proxies to Express); full URL when
+ *              VITE_API_URL is set (dev cross-origin or direct backend URL)
+ *   timeout  — 60 seconds (game import can take a while fetching from external APIs)
+ *
+ * Request interceptor: injects `Authorization: Bearer <token>` from localStorage.
+ *
+ * Response interceptor: on 401, clears the stored token and redirects to /login.
+ * This handles expired JWTs without requiring per-component error handling.
+ */
+
 import axios from 'axios';
 
 const api = axios.create({

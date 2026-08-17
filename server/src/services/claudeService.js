@@ -1,3 +1,26 @@
+/**
+ * claudeService.js — AI coaching via Groq API
+ *
+ * Despite the filename, this module uses the Groq SDK (model: groq/compound-mini),
+ * not Anthropic Claude. The name is a legacy artifact.
+ *
+ * Two functions are exported:
+ *
+ *   generateExplanations(mistakes, playerColor)
+ *     Sends all player mistakes to Groq in a single batch request.
+ *     Returns the same mistakes array with an `explanation` string added to each.
+ *     Gracefully returns null explanations if GROQ_API_KEY is not set.
+ *
+ *   generateCoachingSummary(profile)
+ *     Generates a 3–4 sentence personalised coaching tip based on the user's
+ *     WeaknessProfile (top weaknesses, accuracy, win/loss record).
+ *     Used on the Analysis page and Dashboard.
+ *
+ * Required env: GROQ_API_KEY
+ *
+ * @module services/claudeService
+ */
+
 const Groq = require('groq-sdk');
 
 const client = new Groq({ apiKey: process.env.GROQ_API_KEY });

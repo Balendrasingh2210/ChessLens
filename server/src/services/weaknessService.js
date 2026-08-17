@@ -1,3 +1,22 @@
+/**
+ * weaknessService.js — WeaknessProfile aggregation
+ *
+ * After each game finishes analysis, this service scans ALL of the user's
+ * analyzed games (status: 'done') and rebuilds a single WeaknessProfile
+ * document from scratch. Using a full rebuild (rather than incremental updates)
+ * keeps the logic simple and guarantees consistency.
+ *
+ * The profile stores:
+ *   - categoryBreakdown  : { tactical: N, 'hanging-piece': N, ... }
+ *   - topWeaknesses      : top-3 categories by mistake frequency
+ *   - recommendedThemes  : Lichess puzzle themes mapped from topWeaknesses
+ *   - openingMistakes    : top-5 openings where the user blunders most
+ *   - averageAccuracy    : mean of per-game accuracy scores
+ *   - results            : win/loss/draw counts
+ *
+ * @module services/weaknessService
+ */
+
 const WeaknessProfile = require('../models/WeaknessProfile');
 const AnalyzedGame = require('../models/AnalyzedGame');
 const { categoryToThemes } = require('./lichessService');

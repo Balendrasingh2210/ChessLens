@@ -1,3 +1,25 @@
+/**
+ * App.tsx — root component; sets up React Router and authentication guard
+ *
+ * Route structure:
+ *   Public routes  — /login, /register, /forgot-password, /verify-email, /reset-password
+ *   Protected routes (PrivateRoute wraps these with Layout):
+ *     /             → Dashboard
+ *     /connect      → ConnectAccount
+ *     /games        → Games list
+ *     /games/:id    → GameReview (move-by-move analysis)
+ *     /analysis     → Analysis charts
+ *     /puzzles      → Puzzle trainer
+ *     /settings     → Settings
+ *
+ * PrivateRoute redirects unauthenticated users to /login.
+ * It shows a loading spinner while the initial loadUser() call is in flight
+ * to prevent an incorrect redirect on page refresh.
+ *
+ * On mount, loadUser() is called once to rehydrate auth state from the stored
+ * JWT (GET /api/auth/me). If the token is invalid, it is cleared automatically.
+ */
+
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';

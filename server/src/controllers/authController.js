@@ -1,3 +1,24 @@
+/**
+ * authController.js — authentication and account management endpoints
+ *
+ * Handles the full user lifecycle:
+ *   register()           — creates account, sends verification email via Brevo
+ *   verifyEmail()        — validates the 24h token from the email link
+ *   login()              — validates credentials + email verification, returns JWT
+ *   getMe()              — returns the authenticated user object
+ *   updateProfile()      — change username or email (uniqueness checked)
+ *   resendVerification() — issues a fresh 24h token and re-sends the email
+ *   forgotPassword()     — issues a 1h reset token and emails a reset link
+ *   resetPassword()      — validates the reset token, sets the new password
+ *   changePassword()     — authenticated password change (requires current password)
+ *
+ * Tokens are random 32-byte hex strings stored on the User document with expiry.
+ * Passwords are hashed by the User model's pre-save hook (bcrypt, cost=12).
+ * JWTs are signed with JWT_SECRET and expire per JWT_EXPIRES_IN (default 7d).
+ *
+ * @module controllers/authController
+ */
+
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const User   = require('../models/User');
