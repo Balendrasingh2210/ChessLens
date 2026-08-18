@@ -352,9 +352,8 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </div>{/* end mainContent */}
+        </div>
 
-        {/* News sidebar — sticky on desktop, inline on mobile */}
         <aside className={s.newsSidebar}>
           <div className={s.newsCard}>
             <div className={s.newsHeader}>
@@ -400,8 +399,8 @@ export default function Dashboard() {
               </div>
             ) : null}
           </div>
-        </aside>{/* end newsSidebar */}
-        </div>{/* end dashboardLayout */}
+        </aside>
+        </div>
       )}
     </div>
   );
