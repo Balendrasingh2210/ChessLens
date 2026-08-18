@@ -155,9 +155,19 @@ router.get('/next', protect, async (req, res) => {
 
 // ── POST /api/puzzles/attempt ─────────────────────────────────────────────────
 
+// Elo K-factor: 32 is standard for a dynamic rating system
+const ELO_K = 32;
+
+function computeElo(playerRating, puzzleRating, correct) {
+  const expected = 1 / (1 + Math.pow(10, (puzzleRating - playerRating) / 400));
+  const actual   = correct ? 1 : 0;
+  const newRating = Math.round(playerRating + ELO_K * (actual - expected));
+  return Math.max(600, Math.min(3000, newRating));
+}
+
 router.post('/attempt', protect, async (req, res) => {
   try {
-    const { puzzleId, theme, fen, solution, correct, timeTaken } = req.body;
+    const { puzzleId, theme, fen, solution, correct, timeTaken, puzzleRating: pRating } = req.body;
 
     await PuzzleAttempt.create({
       userId: req.user._id,
@@ -169,6 +179,18 @@ router.post('/attempt', protect, async (req, res) => {
       timeTaken,
     });
 
+    // Update puzzle Elo rating
+    const profile = await WeaknessProfile.findOne({ userId: req.user._id });
+    const currentElo = profile?.puzzleRating ?? 1200;
+    const puzzleDifficulty = pRating || 1500;
+    const newElo = computeElo(currentElo, puzzleDifficulty, correct);
+
+    await WeaknessProfile.findOneAndUpdate(
+      { userId: req.user._id },
+      { $set: { puzzleRating: newElo } },
+      { upsert: true }
+    );
+
     const stats = await PuzzleAttempt.aggregate([
       { $match: { userId: req.user._id } },
       { $group: { _id: null, total: { $sum: 1 }, correct: { $sum: { $cond: ['$correct', 1, 0] } } } },
@@ -177,6 +199,8 @@ router.post('/attempt', protect, async (req, res) => {
     res.json({
       message: correct ? '✅ Correct!' : '❌ Incorrect',
       stats: stats[0] || { total: 0, correct: 0 },
+      puzzleRating: newElo,
+      ratingDelta: newElo - currentElo,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

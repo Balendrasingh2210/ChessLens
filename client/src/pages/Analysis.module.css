@@ -120,6 +120,37 @@
   border-radius: 999px;
 }
 
+.trendHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.trendAvg { font-size: 0.8rem; font-weight: 700; color: var(--blue); background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.25); padding: 3px 10px; border-radius: 999px; }
+.trendLegend { display: flex; align-items: center; gap: 14px; margin-top: 10px; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+.trendDot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; flex-shrink: 0; }
+.chartSub { font-size: 0.78rem; color: var(--text-muted); margin-top: -12px; margin-bottom: 14px; }
+
+/* ── Endgame themes list ──────────────────────────────────────────── */
+.endgameList { display: flex; flex-direction: column; gap: 8px; }
+.endgameRow { display: flex; align-items: center; gap: 12px; font-size: 0.875rem; }
+.endgameRank { width: 20px; text-align: right; color: var(--text-muted); font-size: 0.75rem; flex-shrink: 0; }
+.endgameName { width: 160px; flex-shrink: 0; color: var(--text); font-weight: 500; }
+.endgameBarWrap { flex: 1; height: 8px; background: var(--bg-hover); border-radius: 999px; overflow: hidden; }
+.endgameBar { height: 100%; border-radius: 999px; background: var(--orange); transition: width 0.4s ease; }
+.endgameCount { width: 28px; text-align: right; color: var(--text-sub); font-size: 0.8rem; flex-shrink: 0; }
+
+/* ── Opponent table ───────────────────────────────────────────────── */
+.oppTableWrap { overflow-x: auto; }
+.oppTable { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.oppTable thead { border-bottom: 1px solid var(--border); }
+.oppTable th { padding: 7px 12px; text-align: right; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+.oppTable th:first-child { text-align: left; }
+.oppTable td { padding: 9px 12px; text-align: right; color: var(--text-sub); border-bottom: 1px solid var(--border-soft); }
+.oppTable td:first-child { text-align: left; }
+.oppTable tbody tr:last-child td { border-bottom: none; }
+.oppTable tbody tr:hover { background: var(--bg-hover); }
+.oppName { color: var(--text); font-weight: 600; }
+.w { color: var(--green); font-weight: 700; }
+.d { color: var(--orange); }
+.l { color: var(--red); font-weight: 700; }
+.sep { color: var(--border-soft); margin: 0 3px; }
+
 /* ── Mobile ───────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .page { padding: 16px; }

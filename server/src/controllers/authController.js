@@ -78,8 +78,16 @@ exports.verifyEmail = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email: addr, password } = req.body;
-    const user = await User.findOne({ email: addr });
+    const { identifier, password } = req.body;
+    if (!identifier || !password)
+      return res.status(400).json({ message: 'Email/username and password are required' });
+
+    // Accept either email or username
+    const isEmail = identifier.includes('@');
+    const user = isEmail
+      ? await User.findOne({ email: identifier.toLowerCase() })
+      : await User.findOne({ username: identifier });
+
     if (!user || !(await user.comparePassword(password)))
       return res.status(401).json({ message: 'Invalid credentials' });
     if (!user.isVerified)

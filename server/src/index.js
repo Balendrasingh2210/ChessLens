@@ -21,6 +21,8 @@ const gamesRoutes = require('./routes/games');
 const analysisRoutes = require('./routes/analysis');
 const puzzlesRoutes = require('./routes/puzzles');
 const profileRoutes = require('./routes/profile');
+const newsRoutes            = require('./routes/news');
+const recommendationsRoutes = require('./routes/recommendations');
 const AnalyzedGame = require('./models/AnalyzedGame');
 const { initQueue, enqueueGame } = require('./workers/analysisWorker');
 
@@ -35,6 +37,8 @@ app.use('/api/games', gamesRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/puzzles', puzzlesRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/news',            newsRoutes);
+app.use('/api/recommendations', recommendationsRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'ChessLens' }));
 

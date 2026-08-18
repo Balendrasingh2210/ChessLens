@@ -70,6 +70,7 @@ interface MoveEntry {
 }
 
 type CompareMode = 'played' | 'best';
+type Arrow = [Square, Square, string];
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -167,6 +168,21 @@ export default function GameReview() {
   const [compareMode, setCompareMode] = useState<CompareMode>('played');
   const [boardWidth, setBoardWidth]   = useState(480);
   const [gameIds, setGameIds]         = useState<string[]>([]);
+
+  // Train mode
+  const [trainMode, setTrainMode]                   = useState(false);
+  const [trainStatus, setTrainStatus]               = useState<'correct' | 'wrong' | null>(null);
+  const [trainAttempts, setTrainAttempts]           = useState(0);
+  const [trainArrows, setTrainArrows]               = useState<Arrow[]>([]);
+  const [trainSquareStyles, setTrainSquareStyles]   = useState<Record<string, React.CSSProperties>>({});
+  const [trainSelectedSq, setTrainSelectedSq]       = useState<Square | null>(null);
+  const [trainValidMoves, setTrainValidMoves]       = useState<Set<string>>(new Set());
+
+  // Narrative
+  const [narrative, setNarrative]               = useState<string | null>(null);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
+  const [narrativeOpen, setNarrativeOpen]       = useState(false);
+
   const activeRef = useRef<HTMLButtonElement | null>(null);
   const roRef     = useRef<ResizeObserver | null>(null);
   const boardWrapRef = useCallback((node: HTMLDivElement | null) => {
@@ -232,6 +248,16 @@ export default function GameReview() {
     return () => window.removeEventListener('keydown', onKey);
   }, [cursor, goTo, moves.length]);
 
+  // Reset train state whenever the cursor moves or train mode toggles
+  useEffect(() => {
+    setTrainStatus(null);
+    setTrainAttempts(0);
+    setTrainArrows([]);
+    setTrainSquareStyles({});
+    setTrainSelectedSq(null);
+    setTrainValidMoves(new Set());
+  }, [cursor, trainMode]);
+
   if (loading) return <div className={s.loading}>Loading game review...</div>;
   if (!game)   return null;
 
@@ -239,13 +265,110 @@ export default function GameReview() {
   const mistake = current?.mistake ?? null;
   const quality = current?.classification;
 
+  // ── Train mode handlers ───────────────────────────────────────────────────
+
+  const trainShowMoveHints = (sq: Square, fen: string, myColor: 'w' | 'b') => {
+    const ch = new Chess();
+    ch.load(fen);
+    const piece = ch.get(sq);
+    if (!piece || piece.color !== myColor) return false;
+    const mvs = ch.moves({ square: sq, verbose: true });
+    if (!mvs.length) return false;
+    const styles: Record<string, React.CSSProperties> = {
+      [sq]: { background: 'rgba(255,255,0,0.4)' },
+    };
+    const targets = new Set<string>();
+    mvs.forEach(m => {
+      targets.add(m.to);
+      const isCapture = !!ch.get(m.to as Square);
+      styles[m.to] = isCapture
+        ? { background: 'radial-gradient(circle, rgba(0,0,0,0) 54%, rgba(20,85,30,0.6) 54%)', borderRadius: '50%' }
+        : { background: 'radial-gradient(circle, rgba(20,85,30,0.55) 30%, transparent 30%)' };
+    });
+    setTrainSelectedSq(sq);
+    setTrainSquareStyles(styles);
+    setTrainValidMoves(targets);
+    return true;
+  };
+
+  const trainTryMove = (from: Square, to: Square, mistakeFen: string, bestSan: string) => {
+    const ch = new Chess();
+    ch.load(mistakeFen);
+    const mv = ch.move({ from, to, promotion: 'q' });
+    if (!mv) return;
+    const newAttempts = trainAttempts + 1;
+    setTrainAttempts(newAttempts);
+    setTrainSelectedSq(null);
+    setTrainValidMoves(new Set());
+    if (mv.san === bestSan) {
+      setTrainStatus('correct');
+      setTrainArrows([]);
+      setTrainSquareStyles({ [from]: { background: 'rgba(63,185,80,0.35)' }, [to]: { background: 'rgba(63,185,80,0.5)' } });
+      setTimeout(() => goTo(cursor + 1), 1200);
+    } else {
+      setTrainStatus('wrong');
+      setTrainSquareStyles({ [from]: { background: 'rgba(248,81,73,0.35)' }, [to]: { background: 'rgba(248,81,73,0.5)' } });
+      if (newAttempts >= 2) {
+        const best = bestMoveSquares(mistakeFen, bestSan);
+        if (best) {
+          setTrainArrows([[best.from, best.to, '#3fb950']]);
+          setTrainSquareStyles({ [best.from]: { background: 'rgba(63,185,80,0.35)' }, [best.to]: { background: 'rgba(63,185,80,0.5)' } });
+        }
+        setTimeout(() => goTo(cursor + 1), 2000);
+      }
+    }
+  };
+
+  const onTrainSquareClick = (sq: Square) => {
+    if (!mistake) return;
+    const locked = trainStatus === 'correct' || (trainStatus === 'wrong' && trainAttempts >= 2);
+    if (locked) return;
+    const myColor: 'w' | 'b' = mistake.color === 'white' ? 'w' : 'b';
+    if (trainStatus === 'wrong') {
+      setTrainStatus(null);
+      setTrainSquareStyles({});
+      setTrainSelectedSq(null);
+      setTrainValidMoves(new Set());
+      return;
+    }
+    if (!trainSelectedSq) { trainShowMoveHints(sq, mistake.playedFen, myColor); return; }
+    if (trainSelectedSq === sq) { setTrainSelectedSq(null); setTrainSquareStyles({}); setTrainValidMoves(new Set()); return; }
+    if (trainValidMoves.has(sq)) { trainTryMove(trainSelectedSq, sq, mistake.playedFen, mistake.best); return; }
+    const ch = new Chess();
+    ch.load(mistake.playedFen);
+    const piece = ch.get(sq);
+    if (piece && piece.color === myColor) { trainShowMoveHints(sq, mistake.playedFen, myColor); }
+    else { setTrainSelectedSq(null); setTrainSquareStyles({}); setTrainValidMoves(new Set()); }
+  };
+
+  const onTrainDrop = (from: string, to: string): boolean => {
+    if (!mistake) return false;
+    const locked = trainStatus === 'correct' || (trainStatus === 'wrong' && trainAttempts >= 2);
+    if (locked) return false;
+    setTrainSelectedSq(null);
+    setTrainSquareStyles({});
+    setTrainValidMoves(new Set());
+    trainTryMove(from as Square, to as Square, mistake.playedFen, mistake.best);
+    return true;
+  };
+
+  const fetchNarrative = async () => {
+    if (narrative || narrativeLoading) { setNarrativeOpen(o => !o); return; }
+    setNarrativeLoading(true);
+    setNarrativeOpen(true);
+    try {
+      const res = await api.get(`/games/${id}/narrative`);
+      setNarrative(res.data.narrative ?? null);
+    } catch { setNarrative('Could not generate game narrative at this time.'); }
+    finally { setNarrativeLoading(false); }
+  };
+
   // ── Eval bar ──────────────────────────────────────────────────────────────
   const evalWhite    = current?.evalAfterWhite ?? 0;
   const evalFraction = evalToFraction(evalWhite);
   const evalDisplay  = current?.evalAfterWhite != null ? fmtEval(current.evalAfterWhite) : null;
 
   // ── Board position & arrows ───────────────────────────────────────────────
-  type Arrow = [Square, Square, string];
 
   let displayFen = current?.fen ?? START_FEN;
   let squareStyles: Record<string, React.CSSProperties> = {};
@@ -447,6 +570,13 @@ export default function GameReview() {
         <div className={s.accuracy}>
           Accuracy: <strong>{game.accuracy != null ? `${game.accuracy}%` : '—'}</strong>
         </div>
+        <button
+          className={`${s.trainToggle} ${trainMode ? s.trainToggleOn : ''}`}
+          onClick={() => setTrainMode(m => !m)}
+          title="Toggle Train Mode — find the best move at each mistake"
+        >
+          {trainMode ? '🎯 Training' : '🎯 Train'}
+        </button>
       </div>
 
       {/* Body */}
@@ -485,17 +615,25 @@ export default function GameReview() {
             </div>
 
             <div className={s.boardWrap} ref={boardWrapRef}>
-              <Chessboard
-                position={displayFen}
-                boardWidth={boardWidth}
-                boardOrientation={game.playerColor as 'white' | 'black'}
-                arePiecesDraggable={false}
-                customDarkSquareStyle={{ backgroundColor: '#769656' }}
-                customLightSquareStyle={{ backgroundColor: '#eeeed2' }}
-                customSquareStyles={squareStyles}
-                customArrows={arrows}
-                animationDuration={100}
-              />
+              {(() => {
+                const isTrainMistake = trainMode && !!mistake;
+                const canTrainMove   = isTrainMistake && trainStatus !== 'correct' && !(trainStatus === 'wrong' && trainAttempts >= 2);
+                return (
+                  <Chessboard
+                    position={isTrainMistake ? mistake!.playedFen : displayFen}
+                    boardWidth={boardWidth}
+                    boardOrientation={game.playerColor as 'white' | 'black'}
+                    arePiecesDraggable={canTrainMove}
+                    customDarkSquareStyle={{ backgroundColor: '#769656' }}
+                    customLightSquareStyle={{ backgroundColor: '#eeeed2' }}
+                    customSquareStyles={isTrainMistake ? trainSquareStyles : squareStyles}
+                    customArrows={isTrainMistake ? trainArrows : arrows}
+                    animationDuration={100}
+                    onPieceDrop={isTrainMistake ? onTrainDrop : undefined}
+                    onSquareClick={isTrainMistake ? onTrainSquareClick : undefined}
+                  />
+                );
+              })()}
             </div>
           </div>
 
@@ -528,8 +666,39 @@ export default function GameReview() {
 
         {/* Right: annotation + move list + video recs */}
         <div className={s.movePanel}>
+          {/* AI Game Narrative */}
+          <div className={s.narrativeSection}>
+            <button className={s.narrativeToggle} onClick={fetchNarrative}>
+              {narrativeLoading ? '⏳ Generating…' : narrativeOpen ? '▲ AI Report' : '▼ AI Game Report'}
+            </button>
+            {narrativeOpen && (
+              <div className={s.narrativeBody}>
+                {narrativeLoading
+                  ? <span className={s.narrativeLoading}>Analysing your game…</span>
+                  : narrative
+                    ? narrative.split('\n').filter(Boolean).map((p, i) => (
+                        <p key={i} className={s.narrativePara}>{p}</p>
+                      ))
+                    : null
+                }
+              </div>
+            )}
+          </div>
+
           {/* Annotation box — sits above the move list */}
           <div className={s.annotationWrap}>
+            {trainMode && mistake && (
+              <div className={
+                trainStatus === 'correct' ? s.trainBannerCorrect
+                  : trainStatus === 'wrong' ? s.trainBannerWrong
+                  : s.trainBannerIdle
+              }>
+                {trainStatus === null && '🎯 Find the best move'}
+                {trainStatus === 'correct' && `✅ Correct! Best move: ${mistake.best}`}
+                {trainStatus === 'wrong' && trainAttempts < 2 && `❌ Not quite — try again (${2 - trainAttempts} attempt${2 - trainAttempts !== 1 ? 's' : ''} left)`}
+                {trainStatus === 'wrong' && trainAttempts >= 2 && `❌ Best was ${mistake.best} — see arrow on board`}
+              </div>
+            )}
             {renderAnnotation()}
           </div>
           <div className={s.movePanelHead}>

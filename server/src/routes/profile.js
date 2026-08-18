@@ -83,6 +83,58 @@ router.get('/recommendations', protect, async (req, res) => {
   }
 });
 
+// Activity calendar data — games analyzed + puzzles solved per day for last 84 days
+router.get('/activity', protect, async (req, res) => {
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - 83);
+    since.setHours(0, 0, 0, 0);
+
+    const [gameActivity, puzzleActivity] = await Promise.all([
+      AnalyzedGame.aggregate([
+        { $match: { userId: req.user._id, analysisStatus: 'done', playedAt: { $gte: since } } },
+        { $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$playedAt' } },
+          games: { $sum: 1 },
+        }},
+      ]),
+      PuzzleAttempt.aggregate([
+        { $match: { userId: req.user._id, createdAt: { $gte: since } } },
+        { $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          puzzles: { $sum: 1 },
+          correct: { $sum: { $cond: ['$correct', 1, 0] } },
+        }},
+      ]),
+    ]);
+
+    // Merge into a date-keyed map
+    const map = {};
+    gameActivity.forEach(d => {
+      if (!map[d._id]) map[d._id] = { games: 0, puzzles: 0, correct: 0 };
+      map[d._id].games = d.games;
+    });
+    puzzleActivity.forEach(d => {
+      if (!map[d._id]) map[d._id] = { games: 0, puzzles: 0, correct: 0 };
+      map[d._id].puzzles = d.puzzles;
+      map[d._id].correct = d.correct;
+    });
+
+    // Fill all 84 days so the calendar grid is complete
+    const days = [];
+    for (let i = 83; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      days.push({ date: key, ...(map[key] || { games: 0, puzzles: 0, correct: 0 }) });
+    }
+
+    res.json({ days });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Disconnect a platform account
 router.delete('/accounts/:platform', protect, async (req, res) => {
   try {

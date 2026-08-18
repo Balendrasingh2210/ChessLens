@@ -5,10 +5,10 @@ import api from '../utils/api';
 import s from './Auth.module.css';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword]     = useState('');
+  const [error, setError]           = useState('');
+  const [loading, setLoading]       = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendDone, setResendDone] = useState(false);
   const { login } = useAuthStore();
@@ -20,7 +20,7 @@ export default function Login() {
     e.preventDefault();
     setError(''); setResendDone(false); setLoading(true);
     try {
-      await login(email, password);
+      await login(identifier, password);
       navigate('/');
     } catch (err: unknown) {
       setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed');
@@ -30,7 +30,9 @@ export default function Login() {
   const resend = async () => {
     setResendLoading(true);
     try {
-      await api.post('/auth/resend-verification', { email });
+      // resend-verification requires an email; if user typed username, prompt them
+      const emailVal = identifier.includes('@') ? identifier : '';
+      await api.post('/auth/resend-verification', { email: emailVal });
       setResendDone(true);
     } finally { setResendLoading(false); }
   };
@@ -60,7 +62,15 @@ export default function Login() {
           </div>
         )}
         <form onSubmit={submit} className={s.form}>
-          <input className={s.input} type="email" placeholder="Email" value={email} onChange={e => { setEmail(e.target.value); setResendDone(false); }} required />
+          <input
+            className={s.input}
+            type="text"
+            placeholder="Email or Username"
+            value={identifier}
+            onChange={e => { setIdentifier(e.target.value); setResendDone(false); }}
+            autoComplete="username"
+            required
+          />
           <input className={s.input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
           <button className={s.btn} disabled={loading}>{loading ? 'Signing in...' : 'Sign In'}</button>
         </form>

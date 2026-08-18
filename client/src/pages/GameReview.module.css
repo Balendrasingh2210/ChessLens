@@ -468,3 +468,68 @@
   .moveList { max-height: 220px; }
   .mistakeList { max-height: 260px; }
 }
+
+/* ── Train mode ───────────────────────────────────────────────────────── */
+.trainToggle {
+  margin-left: auto;
+  padding: 5px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-sub);
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.trainToggle:hover { border-color: var(--accent); color: var(--accent); background: rgba(56,139,253,0.08); }
+.trainToggleOn { border-color: var(--accent); color: var(--accent); background: rgba(56,139,253,0.12); }
+
+.trainBannerIdle,
+.trainBannerCorrect,
+.trainBannerWrong {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  text-align: center;
+}
+.trainBannerIdle    { background: rgba(56,139,253,0.12); color: #388bfd; border: 1px solid rgba(56,139,253,0.3); }
+.trainBannerCorrect { background: rgba(63,185,80,0.12);  color: #3fb950; border: 1px solid rgba(63,185,80,0.3); }
+.trainBannerWrong   { background: rgba(248,81,73,0.12);  color: #f85149; border: 1px solid rgba(248,81,73,0.3); }
+
+/* ── AI Narrative ─────────────────────────────────────────────────────── */
+.narrativeSection {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+}
+.narrativeToggle {
+  width: 100%;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+.narrativeToggle:hover { color: var(--text); }
+.narrativeBody {
+  padding: 8px 0 4px;
+}
+.narrativePara {
+  font-size: 0.80rem;
+  line-height: 1.55;
+  color: var(--text-sub);
+  margin: 0 0 8px;
+}
+.narrativePara:last-child { margin-bottom: 0; }
+.narrativeLoading {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  opacity: 0.7;
+  font-style: italic;
+}

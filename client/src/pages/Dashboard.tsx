@@ -8,6 +8,7 @@ import {
 import api from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { useWeaknessRecommendations } from '../hooks/useYouTubeRecs';
+import { useChessNews } from '../hooks/useChessNews';
 import s from './Dashboard.module.css';
 
 interface OpeningStat {
@@ -17,6 +18,13 @@ interface OpeningStat {
   losses: number;
   draws: number;
   avgAccuracy: number | null;
+}
+
+interface ActivityDay {
+  date: string;
+  games: number;
+  puzzles: number;
+  correct: number;
 }
 
 interface DashboardData {
@@ -58,20 +66,25 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activity, setActivity] = useState<ActivityDay[]>([]);
 
   const profile = data?.weaknessProfile;
 
   // YouTube recommendations — fetched in the browser (no server IP block)
+  const { news, loading: newsLoading } = useChessNews(6);
   const videos = useWeaknessRecommendations(profile ? {
     topWeaknesses:   profile.topWeaknesses,
     averageAccuracy: profile.averageAccuracy,
   } : null);
 
   useEffect(() => {
-    api.get('/profile/dashboard')
-      .then(res => setData(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get('/profile/dashboard'),
+      api.get('/profile/activity').catch(() => ({ data: { days: [] } })),
+    ]).then(([dash, act]) => {
+      setData(dash.data);
+      setActivity(act.data.days ?? []);
+    }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
   const hasAccount = user?.connectedAccounts && user.connectedAccounts.length > 0;
@@ -134,7 +147,8 @@ export default function Dashboard() {
           <Link to="/connect" className={s.connectBtn}>Connect Chess.com or Lichess</Link>
         </div>
       ) : (
-        <>
+        <div className={s.dashboardLayout}>
+        <div className={s.mainContent}>
           {/* Stats row */}
           <div className={s.statsRow}>
             <StatCard color="green"  icon="🎯" label="Avg. Accuracy"  value={profile?.averageAccuracy != null ? `${profile.averageAccuracy}%` : '—'} />
@@ -148,6 +162,9 @@ export default function Dashboard() {
               sub={profile ? `${profile.results.wins}W · ${profile.results.losses}L · ${profile.results.draws}D` : ''}
             />
           </div>
+
+          {/* Activity Calendar */}
+          {activity.length > 0 && <ActivityCalendar days={activity} />}
 
           {/* Accuracy Trend Chart */}
           {trendData.length > 1 && (
@@ -335,7 +352,56 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </>
+        </div>{/* end mainContent */}
+
+        {/* News sidebar — sticky on desktop, inline on mobile */}
+        <aside className={s.newsSidebar}>
+          <div className={s.newsCard}>
+            <div className={s.newsHeader}>
+              <div>
+                <h3 className={s.cardTitle} style={{ marginBottom: 2 }}>Chess World News</h3>
+                <span className={s.newsSub}>Latest from Lichess Blog</span>
+              </div>
+              <a href="https://lichess.org/@/Lichess/blog" target="_blank" rel="noopener noreferrer" className={s.newsViewAll}>
+                View all →
+              </a>
+            </div>
+            {newsLoading ? (
+              <div className={s.newsLoading}>
+                {[...Array(6)].map((_, i) => <div key={i} className={s.newsSkeleton} />)}
+              </div>
+            ) : news.length > 0 ? (
+              <div className={s.newsGrid}>
+                {news.map(item => (
+                  <a
+                    key={item.url}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={s.newsItem}
+                  >
+                    <div className={s.newsThumbWrap}>
+                      <img
+                        src={item.image_url}
+                        alt={item.title}
+                        className={s.newsThumb}
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    </div>
+                    <div className={s.newsMeta}>
+                      <span className={s.newsDate}>
+                        {new Date(item.published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                      <span className={s.newsTitle}>{item.title}</span>
+                      {item.snippet && <span className={s.newsSnippet}>{item.snippet}</span>}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </aside>{/* end newsSidebar */}
+        </div>{/* end dashboardLayout */}
       )}
     </div>
   );
@@ -348,6 +414,80 @@ function StatCard({ icon, label, value, sub, color = 'green' }: { icon: string; 
       <div className={s.statValue}>{value}</div>
       <div className={s.statLabel}>{label}</div>
       {sub && <div className={s.statSub}>{sub}</div>}
+    </div>
+  );
+}
+
+function activityLevel(games: number, puzzles: number): 0 | 1 | 2 | 3 | 4 {
+  const total = games + puzzles;
+  if (total === 0) return 0;
+  if (total <= 1) return 1;
+  if (total <= 3) return 2;
+  if (total <= 6) return 3;
+  return 4;
+}
+
+function ActivityCalendar({ days }: { days: ActivityDay[] }) {
+  const weeks: ActivityDay[][] = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+
+  const totalGames   = days.reduce((acc, d) => acc + d.games, 0);
+  const totalPuzzles = days.reduce((acc, d) => acc + d.puzzles, 0);
+  const streak = (() => {
+    let s = 0;
+    for (let i = days.length - 1; i >= 0; i--) {
+      if (days[i].games + days[i].puzzles === 0) break;
+      s++;
+    }
+    return s;
+  })();
+
+  const DAY_LABELS = ['Mon', 'Wed', 'Fri'];
+
+  return (
+    <div className={s.calendarCard}>
+      <div className={s.calendarHeader}>
+        <div>
+          <h3 className={s.cardTitle} style={{ marginBottom: 2 }}>Activity</h3>
+          <span className={s.calendarSub}>{totalGames} games · {totalPuzzles} puzzles in the last 12 weeks</span>
+        </div>
+        {streak > 0 && (
+          <div className={s.streakBadge}>
+            🔥 {streak}-day streak
+          </div>
+        )}
+      </div>
+      <div className={s.calendarGrid}>
+        <div className={s.calendarDayLabels}>
+          {DAY_LABELS.map(d => <span key={d}>{d}</span>)}
+        </div>
+        <div className={s.calendarWeeks}>
+          {weeks.map((week, wi) => (
+            <div key={wi} className={s.calendarWeek}>
+              {week.map((day) => {
+                const level = activityLevel(day.games, day.puzzles);
+                const label = day.games || day.puzzles
+                  ? `${day.date}: ${day.games} game${day.games !== 1 ? 's' : ''}, ${day.puzzles} puzzle${day.puzzles !== 1 ? 's' : ''}`
+                  : day.date;
+                return (
+                  <div
+                    key={day.date}
+                    className={`${s.calendarCell} ${s[`cal${level}`]}`}
+                    title={label}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className={s.calendarLegend}>
+        <span>Less</span>
+        {([0, 1, 2, 3, 4] as const).map(l => (
+          <div key={l} className={`${s.calendarCell} ${s[`cal${l}`]}`} />
+        ))}
+        <span>More</span>
+      </div>
     </div>
   );
 }

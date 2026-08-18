@@ -63,6 +63,10 @@ export default function Puzzles() {
   // Hint (0 = none shown, 1 = from-square shown, 2 = full arrow shown)
   const [hintLevel, setHintLevel]     = useState(0);
 
+  // Puzzle Elo rating
+  const [puzzleRating, setPuzzleRating]   = useState<number | null>(null);
+  const [ratingDelta, setRatingDelta]     = useState<number | null>(null);
+
   // History tab
   const [activeTab, setActiveTab]   = useState<'trainer' | 'history'>('trainer');
   const [history, setHistory]       = useState<AttemptRecord[]>([]);
@@ -149,6 +153,13 @@ export default function Puzzles() {
   }, [themeParam]);
 
   useEffect(() => { loadPuzzle(); }, [loadPuzzle]);
+
+  // Load initial puzzle Elo from profile
+  useEffect(() => {
+    api.get('/analysis/profile').then(({ data }) => {
+      if (data.profile?.puzzleRating) setPuzzleRating(data.profile.puzzleRating);
+    }).catch(() => {});
+  }, []);
 
   // ── move execution ────────────────────────────────────────────────────────
 
@@ -317,8 +328,15 @@ export default function Puzzles() {
         puzzleId: puzzle.puzzleId, theme, fen: puzzle.fen,
         solution: puzzle.solution, correct,
         timeTaken: Math.round((Date.now() - startTime) / 1000),
+        puzzleRating: puzzle.rating,
       });
       setStats(data.stats);
+      if (data.puzzleRating) {
+        setRatingDelta(data.ratingDelta ?? null);
+        setPuzzleRating(data.puzzleRating);
+        // Clear delta after 3s
+        setTimeout(() => setRatingDelta(null), 3000);
+      }
     } catch { /* ignore */ }
   };
 
@@ -459,6 +477,19 @@ export default function Puzzles() {
             <div className={s.stat}><span>{stats.correct}</span>Correct</div>
             <div className={s.stat}><span>{stats.total - stats.correct}</span>Wrong</div>
             <div className={s.stat}><span>{accuracy}%</span>Accuracy</div>
+            {puzzleRating !== null && (
+              <div className={s.stat}>
+                <span>
+                  {puzzleRating}
+                  {ratingDelta !== null && (
+                    <span className={ratingDelta >= 0 ? s.eloUp : s.eloDown}>
+                      {ratingDelta >= 0 ? ` +${ratingDelta}` : ` ${ratingDelta}`}
+                    </span>
+                  )}
+                </span>
+                Puzzle Elo
+              </div>
+            )}
           </div>
         </div>
       </div>

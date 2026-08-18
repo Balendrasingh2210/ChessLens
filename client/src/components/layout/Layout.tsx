@@ -1,16 +1,18 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Library, BarChart3, Target, PlugZap, LogOut,
+  LayoutDashboard, Library, BarChart3, Target, PlugZap, LogOut, Swords, BookOpen,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import styles from './Layout.module.css';
 
 const NAV = [
-  { to: '/',         label: 'Dashboard',  Icon: LayoutDashboard },
-  { to: '/games',    label: 'My Games',   Icon: Library         },
-  { to: '/analysis', label: 'Analysis',   Icon: BarChart3       },
-  { to: '/puzzles',  label: 'Puzzles',    Icon: Target          },
-  { to: '/connect',  label: 'Connect',    Icon: PlugZap         },
+  { to: '/',          label: 'Dashboard',  Icon: LayoutDashboard },
+  { to: '/games',     label: 'My Games',   Icon: Library         },
+  { to: '/analysis',  label: 'Analysis',   Icon: BarChart3       },
+  { to: '/puzzles',   label: 'Puzzles',    Icon: Target          },
+  { to: '/critical',  label: 'Critical',   Icon: Swords          },
+  { to: '/openings',  label: 'Openings',   Icon: BookOpen        },
+  { to: '/connect',   label: 'Connect',    Icon: PlugZap         },
 ];
 
 export default function Layout() {

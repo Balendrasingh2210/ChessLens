@@ -53,6 +53,9 @@ const weaknessProfileSchema = new mongoose.Schema({
   // Puzzles recommended based on weaknesses
   recommendedThemes: [{ type: String }],
 
+  // Elo-style puzzle rating — starts at 1200, updated after each puzzle attempt
+  puzzleRating: { type: Number, default: 1200 },
+
   lastUpdated: { type: Date, default: Date.now },
 }, { timestamps: true });
 

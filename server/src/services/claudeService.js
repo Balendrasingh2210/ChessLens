@@ -79,6 +79,46 @@ Only return valid JSON, no other text.`;
   }
 };
 
+exports.generateGameNarrative = async (game) => {
+  if (!process.env.GROQ_API_KEY) return null;
+
+  const topMistakes = (game.mistakes || [])
+    .filter(m => m.color === game.playerColor && m.type === 'blunder')
+    .slice(0, 3);
+
+  const mistakeSummary = topMistakes.length > 0
+    ? topMistakes.map(m =>
+        `Move ${m.moveNumber}: played ${m.played}, best was ${m.best} (-${m.winDropPct?.toFixed(0) ?? '?'}% win chance)`
+      ).join('; ')
+    : 'No major blunders';
+
+  const prompt = `You are a chess coach writing a brief game report.
+
+Game: ${game.playerColor} vs ${game.opponent} (${game.result})
+Opening: ${game.opening ?? 'Unknown'}
+Accuracy: ${game.accuracy ?? '?'}%
+Blunders: ${topMistakes.length}
+Key mistakes: ${mistakeSummary}
+
+Write a 3-paragraph game report:
+1. Opening phase: how the game started, was the opening handled well?
+2. Critical moment: describe the most impactful mistake and its consequences.
+3. Lesson: one specific, actionable improvement to take from this game.
+
+Be specific, concise (2-3 sentences per paragraph), and encouraging. Return plain text only, no markdown.`;
+
+  try {
+    const response = await client.chat.completions.create({
+      model: MODEL,
+      max_tokens: 400,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    return response.choices[0].message.content.trim();
+  } catch {
+    return null;
+  }
+};
+
 exports.generateCoachingSummary = async (profile) => {
   if (!process.env.GROQ_API_KEY) return null;
 

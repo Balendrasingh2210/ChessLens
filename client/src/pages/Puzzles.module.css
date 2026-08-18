@@ -215,6 +215,10 @@
 .histTime { color: var(--text-muted); font-size: 0.75rem; text-align: right; }
 .histDate { color: var(--text-muted); font-size: 0.75rem; text-align: right; }
 
+.eloUp   { font-size: 0.65rem; font-weight: 700; color: var(--green); margin-left: 2px; animation: fadeInUp 0.3s ease; }
+.eloDown { font-size: 0.65rem; font-weight: 700; color: var(--red);   margin-left: 2px; animation: fadeInUp 0.3s ease; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
 /* ── Mobile ───────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .page { padding: 14px 16px; }
