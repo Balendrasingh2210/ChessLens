@@ -1,4 +1,4 @@
-.page { padding: 32px 36px; max-width: 1140px; }
+.page { padding: 32px clamp(20px, 5vw, 80px); width: 100%; }
 .loading { display: flex; align-items: center; justify-content: center; height: 60vh; color: var(--text-sub); gap: 10px; }
 .loadingSpinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
 
@@ -58,8 +58,8 @@
 .emptyState h2 { font-size: 1.2rem; color: var(--text); font-weight: 700; }
 .emptyState p { color: var(--text-sub); max-width: 400px; line-height: 1.65; }
 
-/* Stats row */
-.statsRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+/* Stats row — auto-fill so it adapts: 4 cols on wide, wraps on narrow */
+.statsRow { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
 
 .statCard {
   background: var(--bg-card);
@@ -587,20 +587,18 @@
 
 /* ── Dashboard two-col layout (desktop) ──────────────────────────── */
 .dashboardLayout {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr clamp(260px, 22%, 380px);
   gap: 24px;
   align-items: flex-start;
 }
 
 .mainContent {
-  flex: 1;
   min-width: 0;
 }
 
 /* Sticky news sidebar */
 .newsSidebar {
-  width: 300px;
-  flex-shrink: 0;
   position: sticky;
   top: 24px;
   max-height: calc(100vh - 56px);
@@ -625,18 +623,17 @@
 .newsSidebar .newsSnippet { display: none; }
 
 /* ── Mobile ───────────────────────────────────────────────────────── */
-/* Collapse sidebar below 1100px */
-@media (max-width: 1100px) {
-  .dashboardLayout { display: block; }
+/* Collapse sidebar below 960px */
+@media (max-width: 960px) {
+  .dashboardLayout { grid-template-columns: 1fr; }
   .newsSidebar {
     position: static;
-    width: 100%;
     max-height: none;
     overflow-y: visible;
     margin-top: 16px;
   }
-  .newsSidebar .newsGrid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
-  .newsSidebar .newsLoading { grid-template-columns: repeat(2, 1fr); }
+  .newsSidebar .newsGrid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .newsSidebar .newsLoading { grid-template-columns: repeat(3, 1fr); }
   .newsSidebar .newsItem { flex-direction: column; }
   .newsSidebar .newsThumbWrap { width: 100%; aspect-ratio: 16/9; border-radius: var(--radius) var(--radius) 0 0; }
   .newsSidebar .newsMeta { padding: 8px 10px 10px; }

@@ -105,7 +105,7 @@
   color: var(--text-sub);
   font-weight: 600;
   width: 100%;
-  max-width: 780px;
+  max-width: clamp(560px, 70vh, 920px);
   padding: 0 2px;
 }
 
@@ -115,7 +115,7 @@
   align-items: stretch;
   gap: 10px;
   width: 100%;
-  max-width: 780px;   /* cap so it doesn't go extreme on ultra-wide */
+  max-width: clamp(560px, 70vh, 920px);
 }
 
 /* Board fills the row after the eval bar */
