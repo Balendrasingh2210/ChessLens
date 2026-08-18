@@ -27,7 +27,7 @@ router.get('/critical-moments', async (req, res) => {
       for (const m of game.mistakes) {
         if (m.color !== 'white' && m.color !== 'black') continue;
         if (m.type !== 'blunder' && m.type !== 'mistake') continue;
-        if (!m.playedFen || !m.best) continue;
+        if (!m.playedFen || !m.best || m.best === '—') continue;
         moments.push({
           id:         `${game._id}_${m.moveNumber}`,
           fen:        m.playedFen,

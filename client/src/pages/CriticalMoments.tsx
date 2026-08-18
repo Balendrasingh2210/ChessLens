@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess, Square } from 'chess.js';
 import { Link } from 'react-router-dom';
@@ -102,7 +102,14 @@ export default function CriticalMoments() {
     const move = chess.move({ from, to, promotion: 'q' });
     if (!move) return false;
 
-    const correct = move.san === m.best;
+    // Compare by squares (robust against SAN disambiguation/check differences).
+    // Load the original FEN in a fresh instance to find the best move's from/to.
+    const ref = new Chess(m.fen);
+    const bestLegal = ref.moves({ verbose: true }).find(lm => lm.san === m.best);
+    const correct = bestLegal
+      ? bestLegal.from === from && bestLegal.to === to
+      : move.san === m.best;
+
     setFen(chess.fen());
     setAttemptedCount(c => c + 1);
 
